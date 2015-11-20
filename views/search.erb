@@ -17,6 +17,7 @@
       <script src="js/html5shiv.js"></script>
   <![endif]-->
 
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
   <link href='http://fonts.googleapis.com/css?family=Roboto:400' rel='stylesheet' type='text/css'>
   <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
   <% if settings.production? %>
@@ -203,17 +204,59 @@
               </div>
               <ul
                 class="list-group databases <%= type %>">
-                <% databases[type].sort_by(&:title).each do |database| %>
+
+				  <!-- Select all -->
+				  <li class="list-group-item">
+					  <div class="checkbox">
+						  <label>
+							  <input type="checkbox" name="select-all" id="select-all" data-type="nucleotide"/> <b>Select all</b>
+						  </label>
+					  </div>
+				  </li>
+				  <script>
+					  $('#select-all').click(function(event) {
+						  if(this.checked) {
+							  // Iterate each checkbox
+							  $(".databases input:checkbox").check();
+						  } else {
+							  $(".databases input:checkbox").uncheck();
+						  }
+
+					  });
+				  </script>
+				  <!-- Select all end -->
+
+				<% # databases[type].sort_by(&:title).each do |database| %>
+				<% databases[type].sort{|x,y| x.title[/_[a-zA-Z]+_/] <=> y.title[/_[a-zA-Z]+_/]}.each do |database| %>
                   <li class="list-group-item">
                     <div
                       class="checkbox">
                       <label>
-                        <input type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" />
+                        <input type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
                         <%= database.title or database.name %>
                       </label>
                     </div>
                   </li>
                 <% end %>
+
+				  <script>
+					  $('#<%= params[:db] %>').prop('checked', true);
+
+					  <% if not params[:org].nil? and not params[:org].empty? %>
+					  $(':checkbox').each(function() {
+						  if(this.id.indexOf('<%=params[:org]%>') > -1)
+							  this.checked = true;
+					  });
+					  <% end %>
+
+					  <% if not params[:seq].nil? and not params[:seq].empty? %>
+					  $(document).ready(function() {
+						  $('#sequence').val('<%=params[:seq].gsub(/\r/, '').gsub(/\n/, '\\\r\n') %>');
+					  });
+					  <% end %>
+				  </script>
+
+
               </ul>
             </div>
           </div>
@@ -239,7 +282,7 @@
                   type="text"
                   class="form-control" name="advanced" id="advanced"
                   title="View, and enter advanced parameters."
-                  placeholder="eg: -evalue 1.0e-5 -num_alignments 100"/>
+                  placeholder="eg: -evalue 1.0e-5 -num_alignments 100" value="-evalue 1.0e-5"/>
                   <div class="input-group-addon cursor-pointer" data-toggle="modal" data-target="#help">
                     <i class="fa fa-question"></i>
                   </div>

@@ -115,6 +115,17 @@ module SequenceServer
         :icon  => 'fa-external-link'
       }
     end
+
+    def planmine
+      planmineId  = encode self.accession
+      url = "http://planmine.mpi-cbg.de/planmine/portal.do?externalids=#{planmineId}"
+      {
+          :order => 2,
+          :title => 'Planmine',
+          :url   => url,
+          :icon  => 'fa-external-link'
+      }
+    end
   end
 end
 

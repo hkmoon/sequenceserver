@@ -191,6 +191,25 @@
             });
     };
 
+    var drawPlanmineLegend = function ($graphDiv) {
+        $graphDiv
+            .append(
+            $('<table/>')
+                .attr('style', 'font-family: sans-serif; font-size: 11px; border-collapse:collapse;')
+                .attr('border', '0px')
+                .html('<tbody> \
+                    <tr> \
+                    <td>Neg E-value Exponent:</td> \
+                    <td style="background: #2415bf;color: white;" width="50" align="center">&lt; 10</td> \
+                    <td style="background: #00bebb;color: white;" width="50" align="center">10-50</td> \
+                    <td style="background: #00c200;color: white;" width="50" align="center">50-100</td> \
+                    <td style="background: #de00bf;color: white;" width="50" align="center">100-200</td> \
+                    <td style="background: #de0007;color: white;" width="50" align="center">200 &lt;</td> \
+                    </tr> \
+                    </tbody>')
+        );
+    };
+
     /* Main method responsible for drawing the graphical overview.
      * Query div and target div element along with suitable options
      * are provided by the calling function.
@@ -462,9 +481,6 @@
                                     .attr('stroke-width', options.barHeight)
                                     .attr('stroke-linecap', 'butt')
                                     .attr('stroke', d3.rgb(hsplineColor))
-                                    .attr('marker-mid', function() {
-                                        return getMarker( p_hsp.hitEvalue )
-                                    })
                                     .attr('marker-end', function() {
                                         return getMarker( p_hsp.hitEvalue )
                                     });
@@ -481,9 +497,6 @@
                                     .attr('stroke-width', options.barHeight)
                                     .attr('stroke-linecap', 'butt')
                                     .attr('stroke', d3.rgb(hsplineColor))
-                                    .attr('marker-mid', function() {
-                                        return getMarker( p_hsp.hitEvalue )
-                                    })
                                     .attr('marker-end', function() {
                                         return getMarker( p_hsp.hitEvalue )
                                     });
@@ -502,12 +515,13 @@
 
             // Draw legend only when more than one hit present
             if (hits.length > 1) {
-                drawLegend(svg, options, width, height);
+                //drawLegend(svg, options, width, height);
             }
             // Bind listener events once all the graphical elements have
             // been drawn for first time.
             if (index === 0) {
                 graphControls($queryDiv, $graphDiv, true);
+                drawPlanmineLegend($graphDiv);
                 // Redraw the SVG on a browser resize...
                 setupResponsiveness($queryDiv, $graphDiv, index, opts);
             }
