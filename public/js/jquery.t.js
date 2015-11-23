@@ -408,18 +408,6 @@
                 .data(hits)
                 .enter()
                 .append('g')
-                    .attr('data-toggle', 'tooltip')
-                    .attr('title', function(d) {
-                        // Pretty print evalue in tooltip.
-                        var regex = /(\d*\.\d*)e?([+-]\d*)?/;
-                        var parsedVal = regex.exec(d.hitEvalue);
-                        var prettyEvalue = parseFloat(parsedVal[1]).toFixed(3);
-                        var returnString = d.hitDef + '<br><strong>E value:</strong> ' + prettyEvalue;
-                        if (parsedVal[2] !== undefined) {
-                            returnString +=  ' &times; 10<sup>' + parsedVal[2] + '</sup>';
-                        }
-                        return returnString;
-                    })
                     .each(function (d,i) {
                         // TODO: Avoid too many variables and improve naming.
                         var h_i = i+1;
@@ -446,7 +434,7 @@
                             // Drawing the HSPs connector line using the same
                             // color as that of the hit track (using lookahead).
                             var yHspline = y(p_id) + options.barHeight / 2;
-                            var hsplineColor = d3.rgb(colorScale(p_hsp.hitEvalue));
+                            var hsplineColor = d3.rgb( colorScale( p_hsp[j].hspEvalue ) );
 
                             if (j+1 < p_count) {
                                 if (p_hsp[j].hspEnd <= p_hsp[j+1].hspStart) {
@@ -469,10 +457,24 @@
                                 }
                             }
 
+                            d3.select(this)
+                                .attr('data-toggle', 'tooltip')
+                                .attr('title', function(d) {
+                                        // Pretty print evalue in tooltip.
+                                        var regex = /(\d*\.\d*)e?([+-]\d*)?/;
+                                        var parsedVal = regex.exec(p_hsp[j].hspEvalue);
+                                        var prettyEvalue = parseFloat(parsedVal[1]).toFixed(3);
+                                        var returnString = p_hsp.hitDef + ' (' + (j + 1) + ')<br><strong>E value:</strong> ' + prettyEvalue;
+                                        if (parsedVal[2] !== undefined) {
+                                            returnString +=  ' &times; 10<sup>' + parsedVal[2] + '</sup>';
+                                        }
+                                        return returnString;
+                                    })
+
                             if(p_hsp[j].hspFrame > 0)
                             {
                                 d3.select(this)
-                                    .attr('xlink:href', '#' + q_i + '_hit_' + h_i)
+                                    .attr('xlink:href', '#' + q_i + '_hit_' + h_i + '_' + (j + 1))
                                     .append('path')
                                     .attr('d', function (d) {
                                         // Use -6 for hspViewEnd to adjust the total matched length
@@ -482,13 +484,13 @@
                                     .attr('stroke-linecap', 'butt')
                                     .attr('stroke', d3.rgb(hsplineColor))
                                     .attr('marker-end', function() {
-                                        return getMarker( p_hsp.hitEvalue )
+                                        return getMarker( p_hsp[j].hspEvalue )
                                     });
                             }
                             else
                             {
                                 d3.select(this)
-                                    .attr('xlink:href', '#' + q_i + '_hit_' + h_i)
+                                    .attr('xlink:href', '#' + q_i + '_hit_' + h_i+ '_' + (j + 1))
                                     .append('path')
                                     .attr('d', function (d) {
                                         // Use +6 for hspViewStart to adjust the total matched length
@@ -498,7 +500,7 @@
                                     .attr('stroke-linecap', 'butt')
                                     .attr('stroke', d3.rgb(hsplineColor))
                                     .attr('marker-end', function() {
-                                        return getMarker( p_hsp.hitEvalue )
+                                        return getMarker( p_hsp[j].hspEvalue )
                                     });
                             }
                         });
