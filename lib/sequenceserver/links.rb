@@ -123,6 +123,7 @@ module SequenceServer
           :order => 2,
           :title => 'Planmine',
           :url   => url,
+          :class => 'link',
           :icon  => 'fa-external-link'
       }
     end

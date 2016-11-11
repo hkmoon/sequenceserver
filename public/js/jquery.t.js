@@ -9,10 +9,15 @@
     };
 
     var setupClick = function ($graphDiv) {
-        $('a', $graphDiv).click(function (evt) {
+        $('.hspLink', $graphDiv).click(function (evt) {
             evt.preventDefault();
             evt.stopPropagation();
             window.location.hash = $(this).attr('href');
+        });
+        $('.hitLink', $graphDiv).click(function (evt) {
+            evt.preventDefault();
+            evt.stopPropagation();
+            window.open($(this).attr('href'), "_blank");
         });
     };
 
@@ -128,18 +133,22 @@
         hitPanels.map(function () {
             var $this = $(this);
             var _hsps = [];
+
             $this.find('.hsp').each(function () {
                 var __hsps = [];
                 __hsps = $(this).data();
                 __hsps.hspId = this.id;
                 _hsps.push(__hsps);
             });
+
+            _hsps.link = $this.find('.link').attr('href');
             _hsps.hitId = $this.attr('id');
             _hsps.hitDef = $this.data().hitDef;
             _hsps.hitEvalue = $this.data().hitEvalue;
             _hsps.hitLen = $this.data().hitLen;
             _hsps.seqStart = 0;
             _hsps.seqEnd = $this.data().hitLen;
+
             hits.push(_hsps);
         });
         return hits;
@@ -197,16 +206,17 @@
             $('<table/>')
                 .attr('style', 'font-family: sans-serif; font-size: 11px; border-collapse:collapse;')
                 .attr('border', '0px')
-                .html('<tbody> \
-                    <tr> \
-                    <td>Neg E-value Exponent:</td> \
-                    <td style="background: #2415bf;color: white;" width="50" align="center">&lt; 10</td> \
-                    <td style="background: #00bebb;color: white;" width="50" align="center">10-50</td> \
-                    <td style="background: #00c200;color: white;" width="50" align="center">50-100</td> \
-                    <td style="background: #de00bf;color: white;" width="50" align="center">100-200</td> \
-                    <td style="background: #de0007;color: white;" width="50" align="center">200 &lt;</td> \
-                    </tr> \
-                    </tbody>')
+                .html(
+                    '<tbody> ' +
+                        '<tr> ' +
+                            '<td>Neg E-value Exponent:</td>' +
+                            '<td style="background: #2415bf;color: white;" width="50" align="center">&lt; 10</td> ' +
+                            '<td style="background: #00bebb;color: white;" width="50" align="center">10-50</td> ' +
+                            '<td style="background: #00c200;color: white;" width="50" align="center">50-100</td> ' +
+                            '<td style="background: #de00bf;color: white;" width="50" align="center">100-200</td> ' +
+                            '<td style="background: #de0007;color: white;" width="50" align="center">200 &lt;</td> ' +
+                        '</tr> ' +
+                    '</tbody>')
         );
     };
 
@@ -273,19 +283,19 @@
             var qryLeft = maxLeft;
 
             // Add query hit here
-            for(var i = 0; i < hits.length; i++)
+            for(var k = 0; k < hits.length; k++)
             {
-                var seqStart = hits[i].seqViewStart;
-                hits[i].seqViewStart = qryLeft - seqStart;
-                hits[i].seqViewEnd = hits[i].seqViewStart + hits[i].hitLen;
+                var seqStart = hits[k].seqViewStart;
+                hits[k].seqViewStart = qryLeft - seqStart;
+                hits[k].seqViewEnd = hits[k].seqViewStart + hits[k].hitLen;
 
-                for(var j = 0; j < hits[i].length; j++)
+                for(var j = 0; j < hits[k].length; j++)
                 {
-                    var qryStart = hits[i][j].hspStart;
-                    var qryEnd = hits[i][j].hspEnd;
+                    var qryHitStart = hits[k][j].hspStart;
+                    var qryHitEnd = hits[k][j].hspEnd;
 
-                    hits[i][j].hspViewStart = qryLeft + qryStart;
-                    hits[i][j].hspViewEnd = qryLeft + qryEnd;
+                    hits[k][j].hspViewStart = qryLeft + qryHitStart;
+                    hits[k][j].hspViewEnd = qryLeft + qryHitEnd;
                 }
             }
 
@@ -307,9 +317,10 @@
                 .append('g')
                     .attr('transform', 'translate(' + options.margin / 4 + ', ' + options.margin / 4 + ')');
 
+            var maxTextWidth = 150;
             var x = d3.scale
                 .linear()
-                .range([0, width - options.margin]);
+                .range([maxTextWidth, width - options.margin]);
 
             x.domain([1, queryLen]);
 
@@ -367,17 +378,17 @@
                 .data(markerData)
                 .enter()
                 .append('svg:marker')
-                .attr('id', function(d){ return d.name})
+                .attr('id', function(d){ return d.name; })
                 .attr('markerHeight', 2)
                 .attr('markerWidth', 2)
                 .attr('markerUnits', 'strokeWidth')
                 .attr('orient', 'auto')
                 .attr('refX', 2) // For the adjustment of matched length
                 .attr('refY', 3) // The height is adjusted
-                .attr('viewBox', function(d){ return d.viewbox })
+                .attr('viewBox', function(d){ return d.viewbox; })
                     .append('svg:path')
-                    .attr('d', function(d){ return d.path })
-                    .attr('fill', function(d) { return d.fill });
+                    .attr('d', function(d){ return d.path; })
+                    .attr('fill', function(d) { return d.fill; });
 
             // ColorScale
             var colorScale = function(evalue)
@@ -397,7 +408,7 @@
                 else if(evalue > 1e-100) return 'url(#Arrow2)';
                 else if(evalue > 1e-200) return 'url(#Arrow1)';
                 else if(evalue <= 1e-200) return 'url(#Arrow0)';
-            }
+            };
 
             var seqLen = $queryDiv.data().queryLen;
 
@@ -425,6 +436,21 @@
                         .attr('x2', x(d.seqViewEnd))
                         .attr('y2', yHeight)
                         .attr('stroke', 'black');
+
+                        d3.select(this)
+                            .append('a')
+                            .attr('xlink:href', d.link )
+                            .attr('class', 'hitLink')
+                            .append("text")
+                                .attr("x", 0 )
+                                .attr("y", y(p_id) + options.barHeight / 2 )
+                                .attr('font-size', '11px')
+                                .attr("dy", ".30em")
+
+                                .attr('text-anchor', p_hsp.hitDef )
+                                .text( p_hsp.hitDef )
+                            .append("title")
+                            .text( p_hsp.hitDef );
 
                         d3.select(this)
                         .selectAll('.hsp')
@@ -458,6 +484,7 @@
                             }
 
                             d3.select(this)
+                                .attr('class', 'hspLink')
                                 .attr('data-toggle', 'tooltip')
                                 .attr('title', function(d) {
                                         // Pretty print evalue in tooltip.
@@ -469,7 +496,7 @@
                                             returnString +=  ' &times; 10<sup>' + parsedVal[2] + '</sup>';
                                         }
                                         return returnString;
-                                    })
+                                    });
 
                             if(p_hsp[j].hspFrame > 0)
                             {
@@ -484,7 +511,7 @@
                                     .attr('stroke-linecap', 'butt')
                                     .attr('stroke', d3.rgb(hsplineColor))
                                     .attr('marker-end', function() {
-                                        return getMarker( p_hsp[j].hspEvalue )
+                                        return getMarker( p_hsp[j].hspEvalue );
                                     });
                             }
                             else
@@ -500,7 +527,7 @@
                                     .attr('stroke-linecap', 'butt')
                                     .attr('stroke', d3.rgb(hsplineColor))
                                     .attr('marker-end', function() {
-                                        return getMarker( p_hsp[j].hspEvalue )
+                                        return getMarker( p_hsp[j].hspEvalue );
                                     });
                             }
                         });
