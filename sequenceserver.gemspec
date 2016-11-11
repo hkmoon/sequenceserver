@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
                    'Vivek Rai', 'Yannick Wurm']
   s.email       = ['anurag08priyam@gmail.com', 'b.woodcroft@uq.edu.au']
   s.homepage    = 'http://sequenceserver.com'
-  s.license     = 'GNU AGPL v3'
+  s.license     = 'AGPL-3.0'
 
   s.summary     = 'BLAST search made easy!'
   s.description = <<DESC
@@ -31,7 +31,7 @@ DESC
                                '~> 0.4', '>= 0.4.7')
 
   # gem
-  s.files         = `git ls-files`.split
+  s.files         = `git ls-files`.split("\n") - ['Gemfile', 'Gemfile.lock']
   s.executables   = ['sequenceserver']
   s.require_paths = ['lib']
 

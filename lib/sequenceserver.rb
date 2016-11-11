@@ -9,6 +9,7 @@ require 'sequenceserver/sequence'
 require 'sequenceserver/database'
 require 'sequenceserver/blast'
 require 'sequenceserver/routes'
+require 'sequenceserver/job_remover'
 
 # Top level module / namespace.
 module SequenceServer
@@ -38,11 +39,14 @@ module SequenceServer
 
     def init(config = {})
       @config = Config.new(config)
+      Thread.abort_on_exception = true if ENV['RACK_ENV'] == 'development'
 
       init_binaries
       init_database
       load_extension
       check_num_threads
+      @job_remover = JobRemover.new(@config[:job_lifetime])
+
       self
 
       # We don't validate port and host settings. If SequenceServer is run
@@ -80,8 +84,10 @@ module SequenceServer
       puts
       puts '** Thank you for using SequenceServer :).'
       puts '   Please cite: '
-      puts '             Priyam, Woodcroft, Rai & Wurm,'
-      puts '             SequenceServer (in prep).'
+      puts '       Priyam A, Woodcroft BJ, Rai V, Munagala A, Moghul I, Ter F,'
+      puts '       Gibbins MA, Moon H, Leonard G, Rumpf W & Wurm Y. 2015.'
+      puts '       Sequenceserver: a modern graphical user interface for'
+      puts '       custom BLAST databases. biorxiv doi: 10.1101/033142.'
     end
 
     # Rack-interface.
@@ -196,9 +202,9 @@ module SequenceServer
     def open_in_browser(server_url)
       return if using_ssh? || verbose?
       if RUBY_PLATFORM =~ /linux/ && xdg?
-        `xdg-open #{server_url}`
+        system "xdg-open #{server_url}"
       elsif RUBY_PLATFORM =~ /darwin/
-        `open #{server_url}`
+        system "open #{server_url}"
       end
     end
 

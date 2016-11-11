@@ -91,7 +91,7 @@ module SequenceServer
       private
 
       def parse_advanced param_line
-        param_list = param_line.split(' ')
+        param_list = (param_line || '').split(' ')
         res = {}
 
         param_list.each_with_index do |word, i|
@@ -105,7 +105,6 @@ module SequenceServer
             end
           end
         end
-        res.delete 'evalue'
         res
       end
 

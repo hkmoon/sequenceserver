@@ -2,10 +2,13 @@ import _ from 'underscore';
 import React from 'react';
 import d3 from 'd3';
 
-import './graphicaloverview';
-import './kablammo';
+import * as Helpers from './visualisation_helpers';
+import GraphicalOverview from './alignmentsoverview';
+import Kablammo from './kablammo';
 import './sequence';
-
+import AlignmentExporter from './alignment_exporter';
+import LengthDistribution from './lengthdistribution';
+import Circos from './circos';
 
 /**
  * Pretty formats number
@@ -15,7 +18,7 @@ var Utils = {
     /**
      * Prettifies numbers and arrays.
      */
-    prettify: function (data){
+    prettify: function (data) {
         if (this.isTuple(data)) {
             return this.prettify_tuple(data);
         }
@@ -41,10 +44,14 @@ var Utils = {
             return element;
         }
         else {
-            if(!(base % 1==0))
+            if(!(base % 1==0)) {
+              if (parseFloat(base).toFixed(2) == 0.00) {
+                return parseFloat(base).toFixed(5)
+              }
                 return parseFloat(base).toFixed(2);
-            else
+            } else {
                 return base;
+            }
         }
     },
 
@@ -116,220 +123,6 @@ var Utils = {
 };
 
 /**
- * Renders Kablammo visualization
- *
- * JSON received from server side is modified as JSON expected by kablammo's
- * graph.js.  All the relevant information including a SVG container where
- * visual needs to be rendered, is delegated to graph.js. graph.js renders
- * kablammo visualization and has all event handlers for events performed on
- * the visual.
- *
- * Event handlers related to downloading and viewing of alignments and images
- * have been extracted from grapher.js and interface.js and directly included
- * here.
- */
-var Kablammo = (function () {
-
-    var SEQ_TYPES = {
-        blastn: {
-            query_seq_type:   'nucleic_acid',
-            subject_seq_type: 'nucleic_acid'
-        },
-        blastp: {
-            query_seq_type:   'amino_acid',
-            subject_seq_type: 'amino_acid'
-        },
-        blastx: {
-            query_seq_type:   'nucleic_acid',
-            subject_seq_type: 'amino_acid'
-        },
-        tblastx: {
-            query_seq_type:   'nucleic_acid',
-            subject_seq_type: 'nucleic_acid'
-        },
-        tblastn: {
-            query_seq_type:   'amino_acid',
-            subject_seq_type: 'nucleic_acid'
-        }
-    };
-
-    /**
-     * Mock Kablammo's grapher.js.
-     */
-    var grapher = {
-        use_complement_coords: false,
-
-        /**
-         * Coverts colour from RGBA to RGB.
-         *
-         * Taken from grapher.js.
-         */
-        _rgba_to_rgb: function (rgba, matte_rgb) {
-
-            // Algorithm taken from http://stackoverflow.com/a/2049362/1691611.
-            var normalize = function (colour) {
-                return colour.map(function (channel) { return channel / 255; });
-            };
-
-            var denormalize = function (colour) {
-                return colour.map(function (channel) { return Math.round(Math.min(255, channel * 255)); });;
-            };
-
-            var norm = normalize(rgba.slice(0, 3));
-            matte_rgb = normalize(matte_rgb);
-            var alpha = rgba[3] / 255;
-
-            var rgb = [
-                (alpha * norm[0]) + (1 - alpha) * matte_rgb[0],
-                (alpha * norm[1]) + (1 - alpha) * matte_rgb[1],
-                (alpha * norm[2]) + (1 - alpha) * matte_rgb[2],
-            ];
-
-            return denormalize(rgb);
-        },
-
-        /**
-         * Determines colour of a hsp based on normalized bit-score.
-         *
-         * Taken from grapher.js
-         */
-        determine_colour: function (level) {
-            var graph_colour = { r: 30, g: 139, b: 195 };
-            var matte_colour = { r: 255, g: 255, b: 255 };
-            var min_opacity = 0.3;
-            var opacity = ((1 - min_opacity) * level) + min_opacity;
-            var rgb = this._rgba_to_rgb([
-                graph_colour.r,
-                graph_colour.g,
-                graph_colour.b,
-                255 * opacity
-            ], [
-                matte_colour.r,
-                matte_colour.g,
-                matte_colour.b,
-            ]);
-            return 'rgb(' + rgb.join(',') + ')';
-        },
-    };
-
-    return React.createClass({
-        mixins: [Utils],
-
-        // Internal helpers. //
-
-        /**
-         * Adapter to convert server-side JSON into a form expected by Kablammo.
-         * This is done by changing keys of JSON.
-         */
-        toKablammo: function (hsps, query) {
-            var maxBitScore = query.hits[0].hsps[0].bit_score;
-
-            var hspKeyMap = {
-                'qstart':  'query_start',
-                'qend':    'query_end',
-                'qframe':  'query_frame' ,
-                'sstart':  'subject_start',
-                'send':    'subject_end',
-                'sframe':  'subject_frame',
-                'length':  'alignment_length',
-                'qseq':    'query_seq',
-                'sseq':    'subject_seq',
-                'midline': 'midline_seq'
-            };
-            return _.map(hsps, function (hsp) {
-                var _hsp = {};
-                $.each(hsp, function (key, value) {
-                    key = hspKeyMap[key] || key;
-                    _hsp[key] = value;
-                    _hsp.normalized_bit_score = hsp.bit_score / maxBitScore;
-                })
-                return _hsp;
-            });
-        },
-
-        /**
-         * Returns jQuery wrapped element that should hold Kablammo's svg.
-         */
-        svgContainer: function () {
-            return $(React.findDOMNode(this.refs.svgContainer));
-        },
-
-        isHspSelected: function (index , selected) {
-            return index in selected
-        },
-
-        /**
-         * Event-handler for viewing alignments.
-         * Calls relevant method on AlignmentViewer defined in alignment_viewer.js.
-         */
-        showAlignment: function (hsps, query_seq_type, query_def, query_id, subject_seq_type, subject_def, subject_id) {
-            event.preventDefault();
-            aln_viewer = new AlignmentViewer();
-            aln_viewer.view_alignments(hsps, query_seq_type, query_def, query_id, subject_seq_type, subject_def, subject_id);
-        },
-
-        // Life-cycle methods //
-
-        render: function () {
-            return (
-                <div ref="svgContainer">
-                </div>
-            );
-        },
-
-        /**
-         * Invokes Graph method defined in graph.js to render kablammo visualization.
-         * Also defines event handler for hovering on HSP polygon.
-         */
-        componentDidMount: function (event) {
-            var hsps = this.toKablammo(this.props.hit.hsps, this.props.query);
-            var svgContainer = this.svgContainer();
-
-            Graph.prototype._canvas_width = svgContainer.width();
-
-            this._graph = new Graph(
-                grapher,
-                SEQ_TYPES[this.props.algorithm],
-                this.props.query.id + ' ' + this.props.query.title,
-                this.props.query.id,
-                this.props.hit.id + ' ' + this.props.hit.title,
-                this.props.hit.id,
-                this.props.query.length,
-                this.props.hit.length,
-                hsps,
-                svgContainer
-            );
-
-            // Disable hover handlers and show alignment on selecting hsp.
-            var selected = {}
-            var polygons = d3.select(svgContainer[0]).selectAll('polygon');
-            polygons
-            .on('mouseenter', null)
-            .on('mouseleave', null)
-            .on('click', _.bind(function (clicked_hsp , clicked_index) {
-                if(!this.isHspSelected(clicked_index , selected)) {
-                    selected[clicked_index] = hsps[clicked_index];
-                    var polygon = polygons[0][clicked_index];
-                    polygon.parentNode.appendChild(polygon);
-                    d3.select(polygon).classed('selected', true);
-                    $("#Alignment_Query_" + this.props.query.number + "_hit_" + this.props.hit.number + "_" + (clicked_index + 1)).show();
-                }
-                else {
-                    delete selected[clicked_index];
-                    var polygon = polygons[0][clicked_index];
-                    var firstChild = polygon.parentNode.firstChild;
-                    if (firstChild) {
-                        polygon.parentNode.insertBefore(polygon, firstChild);
-                    }
-                    d3.select(polygon).classed('selected', false);
-                    $("#Alignment_Query_" + this.props.query.number + "_hit_" + this.props.hit.number + "_" + (clicked_index + 1)).hide();
-                }
-            }, this))
-        },
-    });
-})();
-
-/**
  * Component for sequence-viewer links.
  */
 var SequenceViewer = (function () {
@@ -352,7 +145,7 @@ var SequenceViewer = (function () {
                 <div
                     className="fastan">
                     <div
-                        className="page-header">
+                        className="section-header">
                         <h4>
                             {this.props.sequence.id}
                             <small>
@@ -361,7 +154,7 @@ var SequenceViewer = (function () {
                         </h4>
                     </div>
                     <div
-                        className="page-content">
+                        className="section-content">
                         <div
                             className={this.widgetClass} id={this.widgetID}>
                         </div>
@@ -425,13 +218,13 @@ var SequenceViewer = (function () {
                         <div
                             className="fastan">
                             <div
-                                className="page-header">
+                                className="section-header">
                                 <h4>
                                     {error_msg[0]}
                                 </h4>
                             </div>
                             <div
-                                className="page-content">
+                                className="section-content">
                                 <pre
                                     className="pre-reset">
                                     {error_msg[1]}
@@ -556,7 +349,7 @@ var Hit = React.createClass({
         switch (this.props.algorithm) {
         case 'tblastx':
             _.extend(stats, {
-                'Frame': in_fraction(hsp.qframe, hsp.sframe)
+                'Frame': this.inFraction(hsp.qframe, hsp.sframe)
             });
             // fall-through
         case 'blastp':
@@ -589,7 +382,7 @@ var Hit = React.createClass({
         return stats;
     },
 
-     // Life cycle methods //
+    // Life cycle methods //
 
 
     /**
@@ -607,30 +400,25 @@ var Hit = React.createClass({
         $("#" + this.domID()).find('.export-alignment').on('click',_.bind(function () {
             event.preventDefault();
 
-            var hsps = _.map(this.props.hit.hsps, function (hsp) {
-                hsp['query_seq'] = hsp.qseq;
-                hsp['subject_seq'] = hsp.sseq;
+            var hsps = _.map(this.props.hit.hsps, _.bind(function (hsp) {
+                hsp.query_id = this.props.query.id;
+                hsp.hit_id = this.props.hit.id;
                 return hsp;
-            })
+            }, this))
 
             var aln_exporter = new AlignmentExporter();
-            aln_exporter.export_alignments(hsps, this.props.query.id + this.props.query.title,
-                                           this.props.query.id, this.props.hit.id + this.props.hit.title,
-                                           this.props.hit.id);
+            aln_exporter.export_alignments(hsps, this.props.query.id+"_"+this.props.hit.id);
         }, this))
     },
 
     render: function () {
-        // NOTE:
-        //   Adding 'subject' class to hit container is important for
-        //   Kablammo's ImageExporter to work.
         return (
             <div
-                className="hitn subject" id={this.domID()}
+                className="hit" id={this.domID()}
                 data-hit-def={this.props.hit.id} data-hit-evalue={this.props.hit.evalue}
                 data-hit-len={this.props.hit.length}>
                 <div
-                  className="page-header">
+                  className="section-header">
                     <h4
                       data-toggle="collapse"
                       data-target={ "#Query_" + this.props.query.number + "_hit_"
@@ -655,7 +443,7 @@ var Hit = React.createClass({
                     </span>
                 </div>
                 <div
-                    className="page-content collapse in"
+                    className="section-content collapse in"
                     id={"Query_" + this.props.query.number + "_hit_"
                         + this.props.hit.number + "_alignment"}>
                     <div
@@ -681,8 +469,7 @@ var Hit = React.createClass({
                             }
                         </label>
                     </div>
-                    <br/>
-                    <Kablammo query={this.props.query} hit={this.props.hit} algorithm={this.props.algorithm}/>
+                    <Kablammo key={"Kablammo"+this.props.query.id} query={this.props.query} hit={this.props.hit} algorithm={this.props.algorithm}/>
                     <table
                       className="table hsps">
                         <tbody>
@@ -693,9 +480,9 @@ var Hit = React.createClass({
                                         <tr
                                           id={"Alignment_Query_" + this.props.query.number + "_hit_"
                                                   + this.props.hit.number + "_" + hsp.number}
-                                          style={{display:'none'}}>
+                                          key={"Query_"+this.props.query.id+"_Hit_"+this.props.hit.id+"_"+hsp.number}>
                                             <td>
-                                                {hsp.number + "."}
+                                                {Helpers.toLetters(hsp.number) + "."}
                                             </td>
                                             <td
                                                 style={{width: "100%"}}>
@@ -712,7 +499,7 @@ var Hit = React.createClass({
                                                         <thead>
                                                         {
                                                             _.map(stats_returned, function (value , key) {
-                                                                return(<th>{key}</th>);
+                                                                return(<th key={value+"_"+key}>{key}</th>);
                                                             })
                                                         }
                                                         </thead>
@@ -720,7 +507,7 @@ var Hit = React.createClass({
                                                             <tr>
                                                                 {
                                                                     _.map(stats_returned, _.bind(function (value , key) {
-                                                                        return(<th>{this.prettify(value)}</th>);
+                                                                        return(<th key={value+"_"+key}>{this.prettify(value)}</th>);
                                                                     }, this))
                                                                 }
                                                             </tr>
@@ -749,38 +536,37 @@ var HitsTable = React.createClass({
     render: function () {
         var count = 0,
           hasName = _.every(this.props.query.hits, function(hit) {
-            return hit.sciname !== "-";
+            return hit.sciname !== '';
           });
 
-        return(
+        return (
             <table
-              className="table table-hover table-condensed tabular-view">
+                className="table table-hover table-condensed tabular-view">
                 <thead>
-                    <th className="text-left"> Number </th>
-                    <th>Sequences producing significant alignments</th>
-                     {hasName && <th className="text-left"> Scientific name </th>}
-                    <th className="text-right"> Total score </th>
-                    <th className="text-right"> E value </th>
-                    <th className="text-right"> Coverage </th>
-                    <th className="text-right"> Length </th>
+                    <th className="text-left">#</th>
+                    <th>Similar sequences</th>
+                    {hasName && <th className="text-left">Species</th>}
+                    <th className="text-right">Query coverage</th>
+                    <th className="text-right">Total Score</th>
+                    <th className="text-right">E value</th>
+                    <th className="text-right">Identity</th>
                 </thead>
                 <tbody>
                     {
                         _.map(this.props.query.hits, _.bind(function (hit) {
                             return (
-                                <tr>
+                                <tr key={hit.id}>
                                     <td className="text-left">{hit.number + "."}</td>
                                     <td>
                                         <a href={"#Query_" + this.props.query.number + "_hit_" + hit.number}>
                                             {hit.id}
                                         </a>
                                     </td>
-
                                     {hasName && <td className="text-left">{this.prettify(hit.sciname)}</td>}
-                                    <td className="text-right">{this.prettify(hit.score)}</td>
-                                    <td className="text-right">{this.prettify(hit.evalue)}</td>
                                     <td className="text-right">{this.prettify(hit.qcovs)}</td>
-                                    <td className="text-right">{this.prettify(hit.length)}</td>
+                                    <td className="text-right">{this.prettify(hit.score)}</td>
+                                    <td className="text-right">{this.prettify(hit.hsps[0].evalue)}</td>
+                                    <td className="text-right">{this.prettify(hit.hsps[0].identity)}</td>
                                 </tr>
                             )
                         }, this))
@@ -788,65 +574,6 @@ var HitsTable = React.createClass({
                 </tbody>
             </table>
         );
-    }
-});
-
-/**
- * Component for graphical-overview per query.
- */
-
-var GraphicalOverview = React.createClass({
-
-    // Internal helpers. //
-
-    /**
-     * Converts data into form accepted by graphical overview.
-     */
-    toGraph : function (query_hits,number) {
-        var hits = [];
-        query_hits.map(function (hit) {
-            var _hsps = [];
-            var hsps = hit.hsps;
-            _.each(hsps, function (hsp) {
-                var _hsp = {};
-                _hsp.hspEvalue = hsp.evalue;
-                _hsp.hspStart = hsp.qstart;
-                _hsp.hspEnd = hsp.qend;
-                _hsp.hspFrame = hsp.sframe;
-                _hsp.hspId = "Query_"+number+"_hit_"+hit.number+"_hsp_"+hsp.number;
-                _hsps.push(_hsp);
-            });
-            _hsps.hitId = hit.id;
-            _hsps.hitDef = "Query_"+number+"_hit_"+hit.number;
-            _hsps.hitEvalue = hit.evalue;
-            hits.push(_hsps);
-        });
-        return hits;
-    },
-
-    /**
-     * Returns jQuery wrapped element that should hold graphical overview's
-     * svg.
-     */
-    svgContainer: function () {
-        return $(React.findDOMNode(this.refs.svgContainer));
-    },
-
-
-    // Life-cycle methods //
-
-    render: function () {
-        return (
-            <div
-                className="graphical-overview"
-                ref="svgContainer">
-            </div>
-        );
-    },
-
-    componentDidMount: function () {
-        var hits = this.toGraph(this.props.query.hits, this.props.query.number);
-        $.graphIt(this.svgContainer().parent().parent(), this.svgContainer(), 0, 20, null, hits);
     }
 });
 
@@ -877,16 +604,13 @@ var Query = React.createClass({
     // Life cycle methods //
 
     render: function () {
-        // NOTE:
-        //   Adding 'subject' class to query container is required by
-        //   ImageExporter.
         return (
             <div
-                className="resultn subject" id={this.domID()}
+                className="resultn" id={this.domID()}
                 data-query-len={this.props.query.length}
                 data-algorithm={this.props.data.program}>
                 <div
-                    className="page-header">
+                    className="section-header">
                     <h3>
                         Query= {this.props.query.id}
                         &nbsp;
@@ -904,21 +628,12 @@ var Query = React.createClass({
                 {this.numhits() &&
                     (
                         <div
-                            className="page-content">
-                            <div
-                                className="hit-links">
-                                <a href = "#" className="export-to-svg">
-                                    <i className="fa fa-download"/>
-                                    <span>{"  SVG  "}</span>
-                                </a>
-                                <span>{" | "}</span>
-                                <a href = "#" className="export-to-png">
-                                    <i className="fa fa-download"/>
-                                    <span>{"  PNG  "}</span>
-                                </a>
-                            </div>
-                            <GraphicalOverview query={this.props.query} program={this.props.data.program}/>
-                            <HitsTable query={this.props.query}/>
+                            className="section-content">
+
+                            <GraphicalOverview key={"GO_"+this.props.query.id} query={this.props.query} program={this.props.data.program}/>
+
+                            <LengthDistribution key={"LD_"+this.props.query.id} query={this.props.query} algorithm={this.props.data.program}/>
+                            <HitsTable key={"HT_"+this.props.query.id} query={this.props.query}/>
                             <div
                                 id="hits">
                                 {
@@ -926,6 +641,7 @@ var Query = React.createClass({
                                         return (
                                             <Hit
                                                 hit={hit}
+                                                key={"HIT_"+hit.id}
                                                 algorithm={this.props.data.program}
                                                 query={this.props.query}
                                                 selectHit={this.props.selectHit}/>
@@ -936,7 +652,7 @@ var Query = React.createClass({
                         </div>
                     ) || (
                         <div
-                            className="page-content">
+                            className="section-content">
                             <p>
                                 Query length: {this.props.query.length}
                             </p>
@@ -961,96 +677,81 @@ var Query = React.createClass({
 var SideBar = React.createClass({
 
     /**
-     * generates URI for downloading fasta of hits.
+     * Dynamically create form and submit.
      */
-    generateURI: function (sequence_ids, database_ids) {
-         // Encode URIs against strange characters in sequence ids.
-        sequence_ids = encodeURIComponent(sequence_ids.join(' '));
-        database_ids = encodeURIComponent(database_ids);
+    postForm: function (sequence_ids, database_ids) {
+        var form = $('<form/>').attr('method', 'post').attr('action', '/get_sequence');
+        addField("sequence_ids", sequence_ids);
+        addField("database_ids", database_ids);
+        form.appendTo('body').submit().remove();
 
-        var url = "get_sequence/?sequence_ids=" + sequence_ids +
-            "&database_ids=" + database_ids + '&download=fasta';
-
-        return url;
+        function addField(name, val) {
+            form.append(
+                $('<input>').attr('type', 'hidden').attr('name', name).val(val)
+            );
+        }
     },
 
     /**
      * Event-handler for downloading fasta of all hits.
      */
     downloadFastaOfAll: function () {
-        var num_hits = $('.hitn').length;
-
-        var $a = $('.download-fasta-of-all');
-        if (num_hits >= 1 && num_hits <= 30) {
-            var sequence_ids = $('.hit-links :checkbox').map(function () {
-                return this.value;
-            }).get();
-            $a
-            .enable()
-            .attr('href', this.generateURI(sequence_ids, $a.data().databases))
-            .tooltip({
-                title: num_hits + " hit(s)."
-            });
-            return;
-        }
-
-        if (num_hits === 0) {
-            $a.tooltip({
-                title: "No hit to download."
-            });
-        }
-
-        if (num_hits > 30) {
-            $a.tooltip({
-                title: "Can't download more than 30 hits."
-            });
-        }
-
-        $a
-        .disable()
-        .removeAttr('href');
+        var sequence_ids = $('.hit-links :checkbox').map(function () {
+            return this.value;
+        }).get();
+        var database_ids = _.map(this.props.data.querydb, _.iteratee('id'));
+        this.postForm(sequence_ids, database_ids);
     },
 
     /**
      * Handles downloading fasta of selected hits.
      */
     downloadFastaOfSelected: function () {
-        var num_checked  = $('.hit-links :checkbox:checked').length;
+        var sequence_ids = $('.hit-links :checkbox:checked').map(function () {
+            return this.value;
+        }).get();
+        var database_ids = _.map(this.props.data.querydb, _.iteratee('id'));
+        this.postForm(sequence_ids, database_ids);
+    },
 
-        var $a = $('.download-fasta-of-selected');
-        var $n = $a.find('.text-bold');
-        $n.html(num_checked);
+    downloadAlignmentOfAll: function() {
+        var sequence_ids = $('.hit-links :checkbox').map(function () {
+            return this.value;
+        }).get();
+        var hsps_arr = [];
+        var aln_exporter = new AlignmentExporter();
+        _.each(this.props.data.queries, _.bind(function (query) {
+            _.each(query.hits, function (hit) {
+                _.each(hit.hsps, function (hsp) {
+                    hsp.hit_id = hit.id;
+                    hsp.query_id = query.id;
+                    hsps_arr.push(hsp);
+                })
+            })
+        }, this));
+        console.log('len '+hsps_arr.length);
+        aln_exporter.export_alignments(hsps_arr, "alignment-"+sequence_ids.length+"_hits");
+    },
 
-        if (num_checked >= 1 && num_checked <= 30) {
-            var sequence_ids = $('.hit-links :checkbox:checked').map(function () {
-                return this.value;
-            }).get();
-
-            $a
-            .enable()
-            .attr('href', this.generateURI(sequence_ids, $a.data().databases))
-            .tooltip({
-                title: num_checked + " hit(s) selected."
+    downloadAlignmentOfSelected: function () {
+        var sequence_ids = $('.hit-links :checkbox:checked').map(function () {
+            return this.value;
+        }).get();
+        var hsps_arr = [];
+        var aln_exporter = new AlignmentExporter();
+        console.log('check '+sequence_ids.toString());
+        _.each(this.props.data.queries, _.bind(function (query) {
+            _.each(query.hits, function (hit) {
+                if (_.indexOf(sequence_ids, hit.id) != -1) {
+                    _.each(hit.hsps, function (hsp) {
+                        hsp.hit_id = hit.id;
+                        hsp.query_id = query.id;
+                        hsps_arr.push(hsp);
+                    });
+                }
             });
-            return;
-        }
-
-        if (num_checked === 0) {
-            $n.empty();
-            $a.tooltip({
-                title: "No hit selected."
-            });
-        }
-
-        if (num_checked > 30) {
-            $a.tooltip({
-                title: "Can't download more than 30 hits."
-            });
-        }
-
-        $a
-        .disable()
-        .removeAttr('href');
+        }, this));
+        aln_exporter.export_alignments(hsps_arr, "alignment-"+sequence_ids.length+"_hits");
     },
 
     summary: function () {
@@ -1066,13 +767,12 @@ var SideBar = React.createClass({
     },
 
     // Life-cycle method. //
-
     render: function () {
         return (
             <div
                 className="sidebar">
                 <div
-                  className="page-header">
+                  className="section-header">
                   <h4>
                       { this.summary() }
                   </h4>
@@ -1082,7 +782,7 @@ var SideBar = React.createClass({
                     {
                         _.map(this.props.data.queries, _.bind(function (query) {
                             return (
-                                <li>
+                                <li key={"Side_bar_"+query.id}>
                                     <a
                                         className="nowrap-ellipsis hover-bold"
                                         href={"#Query_" + query.number}
@@ -1099,7 +799,7 @@ var SideBar = React.createClass({
                 <br/>
 
                 <div
-                  className="page-header">
+                  className="section-header">
                     <h4>
                         Download FASTA, XML, TSV
                     </h4>
@@ -1108,61 +808,59 @@ var SideBar = React.createClass({
                   className="downloads list-unstyled list-padded">
                     <li>
                         <a
-                          className="download download-fasta-of-all"
-                          data-databases=
-                          {
-                            this.props.data.querydb.map(function (query) {
-                                return(query.id)
-                            }).join(' ')
-                          }
-                          onClick={this.downloadFastaOfAll} >
+                          className="download-fasta-of-all"
+                          onClick={this.downloadFastaOfAll}>
                             FASTA of all hits
                         </a>
                     </li>
                     <li>
                         <a
-                          className="download download-fasta-of-selected disabled"
-                          data-databases=
-                          {
-                            this.props.data.querydb.map(function (query) {
-                                return(query.id)
-                            }).join(' ')
-                          }
+                          className="download-fasta-of-selected disabled"
                           onClick={this.downloadFastaOfSelected}>
                             FASTA of <span className="text-bold"></span> selected hit(s)
                         </a>
                     </li>
                     <li>
                         <a
-                          className="download"
-                          title="15 columns: query and subject ID; scientific name, alignment length,
-                          mismatches, gaps, identity, start and end coordinates,
-                          e value, bitscore, query coverage per subject and per HSP."
-                          data-toggle="tooltip"
-                          href={"download/" + this.props.data.search_id + ".std_tsv"}
-                          onClick={this.setupDownloadLinks}>
+                          className="download-alignment-of-all"
+                          onClick={this.downloadAlignmentOfAll}>
+                          Alignment of all hits
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                          className="download-alignment-of-selected disabled"
+                          onClick={this.downloadAlignmentOfSelected}>
+                          Alignment of <span className="text-bold"></span> selected hit(s)
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                          className="download" data-toggle="tooltip"
+                          title="15 columns: query and subject ID; scientific
+                          name, alignment length, mismatches, gaps, identity,
+                          start and end coordinates, e value, bitscore, query
+                          coverage per subject and per HSP."
+                          href={"download/" + this.props.data.search_id + ".std_tsv"}>
                             Standard tabular report
                         </a>
                     </li>
                     <li>
                         <a
-                          className="download"
-                          title="44 columns: query and subject ID, GI, accessions,
-                          and length; alignment details; taxonomy details of subject
-                          sequence(s) and query coverage per subject and per HSP."
-                          data-toggle="tooltip"
-                          href={"download/" + this.props.data.search_id + ".full_tsv"}
-                          onClick={this.setupDownloadLinks}>
+                          className="download" data-toggle="tooltip"
+                          title="44 columns: query and subject ID, GI,
+                          accessions, and length; alignment details;
+                          taxonomy details of subject sequence(s) and
+                          query coverage per subject and per HSP."
+                          href={"download/" + this.props.data.search_id + ".full_tsv"}>
                             Full tabular report
                         </a>
                     </li>
                     <li>
                         <a
-                          className="download"
+                          className="download" data-toggle="tooltip"
                           title="Results in XML format."
-                          data-toggle="tooltip"
-                          href={"download/" + this.props.data.search_id + ".xml"}
-                          onClick={this.setupDownloadLinks}>
+                          href={"download/" + this.props.data.search_id + ".xml"}>
                             Full XML report
                         </a>
                     </li>
@@ -1195,34 +893,40 @@ var Report = React.createClass({
             return;
         }
 
-        var $hitn = $(checkbox.data('target'));
+        var $hit = $(checkbox.data('target'));
 
         // Highlight selected hit and sync checkboxes if sequence viewer is open.
         if (checkbox.is(":checked")) {
-            $hitn
+            $hit
             .addClass('glow')
             .find(":checkbox").not(checkbox).check();
             var $a = $('.download-fasta-of-selected');
+            var $b = $('.download-alignment-of-selected');
+            $b.enable()
             var $n = $a.find('span');
             $a
             .enable()
         }
 
         else {
-            $hitn
+            $hit
             .removeClass('glow')
             .find(":checkbox").not(checkbox).uncheck();
         }
 
-        if (num_checked >= 1 && num_checked <= 30)
+        if (num_checked >= 1)
         {
             var $a = $('.download-fasta-of-selected');
+            var $b = $('.download-alignment-of-selected');
             $a.find('.text-bold').html(num_checked);
+            $b.find('.text-bold').html(num_checked);
         }
 
         if (num_checked == 0) {
             var $a = $('.download-fasta-of-selected');
+            var $b = $('.download-alignment-of-selected');
             $a.addClass('disabled').find('.text-bold').html('');
+            $b.addClass('disabled').find('.text-bold').html('');
         }
     },
 
@@ -1233,7 +937,7 @@ var Report = React.createClass({
      * Fetch results.
      */
     fetch_results: function () {
-        $.getJSON(location.href + '.json')
+        $.getJSON(location.pathname + '.json')
         .complete(_.bind(function (jqXHR) {
             switch (jqXHR.status) {
             case 202:
@@ -1272,22 +976,25 @@ var Report = React.createClass({
     loading: function () {
         return (
             <div
-                className="col-md-6 col-md-offset-3 text-center">
-                <h1>
-                    <i
-                        className="fa fa-cog fa-spin"></i>
-                    BLAST-ing
-                </h1>
-                <p>
-                    <br/>
-                    This can take some time depending on the size of your query and
-                    database(s). The page will update automatically when BLAST is
-                    done.
-                    <br/>
-                    <br/>
-                    You can bookmark the page and come back to it later or share
-                    the link with someone.
-                </p>
+                className="row">
+                <div
+                    className="col-md-6 col-md-offset-3 text-center">
+                    <h1>
+                        <i
+                            className="fa fa-cog fa-spin"></i>
+                        BLAST-ing
+                    </h1>
+                    <p>
+                        <br/>
+                        This can take some time depending on the size of your query and
+                        database(s). The page will update automatically when BLAST is
+                        done.
+                        <br/>
+                        <br/>
+                        You can bookmark the page and come back to it later or share
+                        the link with someone.
+                    </p>
+                </div>
             </div>
         );
     },
@@ -1299,99 +1006,27 @@ var Report = React.createClass({
         return (
             <div
                 className="overview">
-                <h4>
+                <pre
+                    className="pre-reset">
                     {this.state.program_version}
-                </h4>
-                <table
-                    className="table table-condensed">
-                    <thead>
-                        <tr>
-                            <th>
-                                Database
-                            </th>
-                            <th
-                                className="text-right">
-                                Number of sequences
-                            </th>
-                            <th
-                                className="text-right">
-                                Number of characters
-                            </th>
-                            <th
-                                className="text-right">
-                                Created or updated on
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {
-                            _.map(this.state.querydb, function (db) {
-                                return (
-                                    <tr>
-                                        <td>
-                                            { db.title }
-                                        </td>
-                                        <td
-                                            className="text-right">
-                                            { db.nsequences }
-                                        </td>
-                                        <td
-                                            className="text-right">
-                                            { db.ncharacters }
-                                        </td>
-                                        <td
-                                            className="text-right">
-                                            { db.updated_on }
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        }
-                        <tr>
-                            <td
-                                className="text-right">
-                                Total
-                            </td>
-                            <td
-                                className="text-right">
-                                {this.state.stats.nsequences}
-                            </td>
-                            <td
-                                className="text-right">
-                                {this.state.stats.ncharacters}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <table
-                    className="table table-condensed">
-                    <thead>
-                        <tr>
-                            {
-                                _.map(_.keys(this.state.params), function (param) {
-                                    return (
-                                        <th>
-                                            { param }
-                                        </th>
-                                    );
-                                })
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            {
-                                _.map(this.state.params, function (param) {
-                                    return (
-                                        <td>
-                                            { param }
-                                        </td>
-                                    );
-                                })
-                            }
-                        </tr>
-                    </tbody>
-                </table>
+                    <br/>
+                    <br/>
+                    {
+                        _.map(this.state.querydb, function (db) {
+                            return db.title;
+                        }).join(", ")
+                    }
+                    <br/>
+                    Total: {this.state.stats.nsequences} sequences, {this.state
+                        .stats.ncharacters} characters
+                    <br/>
+                    <br/>
+                    {
+                        _.map(this.state.params, function (val, key) {
+                            return key + " " + val;
+                        }).join(", ")
+                    }
+                </pre>
             </div>
         );
     },
@@ -1401,28 +1036,29 @@ var Report = React.createClass({
      */
     results: function () {
         return (
-            <div
-                className={this.shouldShowSidebar() ? 'col-md-9 main' : 'col-md-12'}>
-                { this.overview() }
-                {
-                    _.map(this.state.queries, _.bind(function (query) {
-                        return (
-                            <Query query={query} data={this.state} selectHit={this.selectHit}/>
-                        );
-                    }, this))
+            <div className="row">
+                { this.shouldShowSidebar() &&
+                    (
+                        <div
+                            className="col-md-3 hidden-sm">
+                            <SideBar data={this.state}/>
+                        </div>
+                    )
                 }
-            </div>
-        );
-    },
-
-    /**
-     * Renders sidebar.
-     */
-    sidebar: function () {
-        return (
-            <div
-                className="side col-md-3 hidden-xs hidden-sm">
-                <SideBar data={this.state}/>
+                <div className={this.shouldShowSidebar() ?
+                    'col-md-9' : 'col-md-12'}>
+                    { this.overview() }
+                    <Circos queries={this.state.queries}
+                        program={this.state.program}/>
+                    {
+                        _.map(this.state.queries, _.bind(function (query) {
+                            return (
+                                <Query key={"Query_"+query.id} query={query} data={this.state}
+                                    selectHit={this.selectHit}/>
+                                );
+                        }, this))
+                    }
+                </div>
             </div>
         );
     },
@@ -1434,14 +1070,11 @@ var Report = React.createClass({
      */
     affixSidebar: function () {
         var $sidebar = $('.sidebar');
-        if ($sidebar.length !== 0) {
-            $sidebar.affix({
-                offset: {
-                    top: $sidebar.offset().top
-                }
-            })
-            .width($sidebar.width());
-        }
+        $sidebar.affix({
+            offset: {
+                top: $sidebar.offset().top
+            }
+        });
     },
 
     /**
@@ -1455,7 +1088,7 @@ var Report = React.createClass({
      * Prevents folding of hits during text-selection.
      */
     setupHitSelection: function () {
-        $('.result').on('mousedown', ".hitn > .page-header > h4", function (event) {
+        $('body').on('mousedown', ".hit > .section-header > h4", function (event) {
             var $this = $(this);
             $this.on('mouseup mousemove', function handler(event) {
                 if (event.type === 'mouseup') {
@@ -1505,11 +1138,6 @@ var Report = React.createClass({
         });
     },
 
-    // SVG and PNG download links.
-    setupKablammoImageExporter: function () {
-        new ImageExporter('#report', '.export-to-svg', '.export-to-png');
-    },
-
     // Life-cycle methods. //
 
     getInitialState: function () {
@@ -1525,13 +1153,7 @@ var Report = React.createClass({
     },
 
     render: function () {
-        return (
-            <div
-                className="row">
-                { this.isResultAvailable() && this.results() || this.loading() }
-                { this.shouldShowSidebar() && this.sidebar() }
-            </div>
-        );
+        return (this.isResultAvailable() && this.results() || this.loading());
     },
 
     componentDidMount: function () {
@@ -1548,7 +1170,6 @@ var Report = React.createClass({
         this.setupHitSelection();
         this.setupDownloadLinks();
         this.setupSequenceViewer();
-        this.setupKablammoImageExporter();
     }
 });
 
@@ -1564,6 +1185,10 @@ var Page = React.createClass({
                 <div
                     id="sequence-viewer" className="modal"
                     tabIndex="-1">
+                </div>
+
+                <div
+                  id='circos-demo' className='modal'>
                 </div>
 
                 <canvas
