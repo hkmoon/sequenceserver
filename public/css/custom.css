@@ -459,7 +459,7 @@ a.hitLink {
 
 .list-group.databases .list-group-item {
   border: none;
-  padding: 1px 0;
+  padding: 3px 0 0;
 }
 
 .list-group.databases .list-group-item input {
