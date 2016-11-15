@@ -299,6 +299,8 @@
                 }
             }
 
+            var seqLen = queryLen;
+
             queryLen = maxLeft + maxRight + queryLen;
 
             var q_i = $queryDiv.attr('id');
@@ -409,8 +411,6 @@
                 else if(evalue > 1e-200) return 'url(#Arrow1)';
                 else if(evalue <= 1e-200) return 'url(#Arrow0)';
             };
-
-            var seqLen = $queryDiv.data().queryLen;
 
             svg.append('g')
                 .attr('class', 'ghit')
@@ -538,7 +538,7 @@
                 .append('rect')
                 .attr('x', x(qryLeft))
                 .attr('y', -12)
-                .attr('width', x(seqLen))
+                .attr('width', x(seqLen) - maxTextWidth)
                 .attr('height', options.barHeight)
                 .attr('fill', 'red');
 

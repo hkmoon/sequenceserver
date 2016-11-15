@@ -1,5 +1,6 @@
 require 'English'
 
+require 'tilt/erb'
 require 'sequenceserver/version'
 require 'sequenceserver/exceptions'
 require 'sequenceserver/config'
