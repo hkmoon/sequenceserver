@@ -118,7 +118,7 @@ module SequenceServer
 
     def planmine
       planmineId  = encode self.accession
-      url = "http://plmine.mpi-cbg.de/plmine/portal.do?externalids=#{planmineId}"
+      url = "http://plmine.mpi-cbg.de/plmine/portal.do?externalid=#{planmineId}&class=Contig"
       {
           :order => 2,
           :title => 'Planmine',
