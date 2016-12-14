@@ -254,6 +254,10 @@
             // Calculate the Global Coordination for the given subject sequence
             var maxLeft = 0, maxRight = 0;
 
+            var protein = false;
+            if( $.inArray( $('#method').val(), ['blastp', 'tblastn'] ) )
+                protein = true;
+
             for(var i = 0; i < hits.length; i++)
             {
                 var id = hits[i].hitId;
@@ -265,18 +269,41 @@
                 var subEnd = hits[i][hits[i].length - 1].subEnd;
                 var subLen = hits[i].hitLen;
 
-                if(hits[i][0].hspFrame > 0) {
-                    maxLeft = Math.max(maxLeft, subStart - qryStart);
-                    hits[i].seqViewStart = subStart - qryStart;
-                    maxRight = Math.max(maxRight, subLen - (subEnd + queryLen - qryEnd));
-                    hits[i].seqViewEnd = subLen - (subEnd + queryLen - qryEnd);
+                if( protein )
+                {
+                    if(hits[i][0].hspFrame > 0) {
+                        maxLeft = Math.max(maxLeft, subStart/3 - qryStart);
+                        hits[i].seqViewStart = subStart/3 - qryStart;
+
+                        var right = (queryLen - qryEnd) * 3;
+                        maxRight = Math.max(maxRight, (subLen - (subEnd + right)) / 3);
+                        hits[i].seqViewEnd = (subLen - (subEnd + right) ) / 3;
+                    }
+                    else
+                    {
+                        maxLeft = Math.max(maxLeft, subLen/3 - (subStart/3 + qryStart));
+                        hits[i].seqViewStart = subLen/3 - (subStart/3 + qryStart);
+
+                        var right = (queryLen - qryEnd) * 3;
+                        maxRight = Math.max(maxRight, (subEnd - right) / 3);
+                        hits[i].seqViewEnd = (subEnd - right) / 3;
+                    }
                 }
                 else
                 {
-                    maxLeft = Math.max(maxLeft, subLen - (subStart + qryStart));
-                    hits[i].seqViewStart = subLen - (subStart + qryStart);
-                    maxRight = Math.max(maxRight, subEnd - (queryLen - qryEnd));
-                    hits[i].seqViewEnd = subEnd - (queryLen - qryEnd);
+                    if(hits[i][0].hspFrame > 0) {
+                        maxLeft = Math.max(maxLeft, subStart - qryStart);
+                        hits[i].seqViewStart = subStart - qryStart;
+                        maxRight = Math.max(maxRight, subLen - (subEnd + queryLen - qryEnd));
+                        hits[i].seqViewEnd = subLen - (subEnd + queryLen - qryEnd);
+                    }
+                    else
+                    {
+                        maxLeft = Math.max(maxLeft, subLen - (subStart + qryStart));
+                        hits[i].seqViewStart = subLen - (subStart + qryStart);
+                        maxRight = Math.max(maxRight, subEnd - (queryLen - qryEnd));
+                        hits[i].seqViewEnd = subEnd - (queryLen - qryEnd);
+                    }
                 }
             }
 
@@ -287,10 +314,16 @@
             {
                 var seqStart = hits[k].seqViewStart;
                 hits[k].seqViewStart = qryLeft - seqStart;
-                hits[k].seqViewEnd = hits[k].seqViewStart + hits[k].hitLen;
-
-                for(var j = 0; j < hits[k].length; j++)
+                if( protein ) {
+                    hits[k].seqViewEnd = hits[k].seqViewStart + hits[k].hitLen/3;
+                }
+                else
                 {
+                    hits[k].seqViewEnd = hits[k].seqViewStart + hits[k].hitLen;
+                }
+
+
+                for (var j = 0; j < hits[k].length; j++) {
                     var qryHitStart = hits[k][j].hspStart;
                     var qryHitEnd = hits[k][j].hspEnd;
 
