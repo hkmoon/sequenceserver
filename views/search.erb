@@ -232,7 +232,7 @@
                     <div
                       class="checkbox">
                       <label>
-                        <input type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
+                        <input class="box" type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
                         <%= database.title or database.name %>
                       </label>
                     </div>
@@ -486,6 +486,7 @@
     <script type="text/javascript" src="js/underscore.min.js"></script>
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="js/jquery.cookie.js"></script>
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
     <script type="text/javascript" src="js/webshims/polyfiller.js"></script>
     <script type="text/javascript" src="js/d3.v3.min.js"></script>
@@ -494,6 +495,23 @@
     <script type="text/javascript" src="js/jquery.t.js"></script>
     <script type="text/javascript" src="js/sequence.js"></script>
   <% end %>
+
+  <script>
+      $(document).ready( function(){
+          $("input.box").each(function() {
+              var mycookie = $.cookie($(this).attr('id'));
+              if (mycookie && mycookie == "true") {
+                  $(this).prop('checked', mycookie);
+              }
+          });
+          $("input.box").change(function() {
+              $.cookie($(this).attr("id"), $(this).prop('checked'), {
+                  path: '/',
+                  expires: 365
+              });
+          });
+      });
+  </script>
 
   <!-- twitter -->
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>

@@ -275,7 +275,7 @@
                         maxLeft = Math.max(maxLeft, subStart/3 - qryStart);
                         hits[i].seqViewStart = subStart/3 - qryStart;
 
-                        var right = (queryLen - qryEnd) * 3;
+                        right = (queryLen - qryEnd) * 3;
                         maxRight = Math.max(maxRight, (subLen - (subEnd + right)) / 3);
                         hits[i].seqViewEnd = (subLen - (subEnd + right) ) / 3;
                     }
@@ -284,7 +284,7 @@
                         maxLeft = Math.max(maxLeft, subLen/3 - (subStart/3 + qryStart));
                         hits[i].seqViewStart = subLen/3 - (subStart/3 + qryStart);
 
-                        var right = (queryLen - qryEnd) * 3;
+                        right = (queryLen - qryEnd) * 3;
                         maxRight = Math.max(maxRight, (subEnd - right) / 3);
                         hits[i].seqViewEnd = (subEnd - right) / 3;
                     }
