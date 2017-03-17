@@ -226,8 +226,24 @@
 				  </script>
 				  <!-- Select all end -->
 
+                <h4><i>Blast against Genome</i></h4>
+
+                <% databases[type].select{ |item| item[:title].end_with?("g4a")  }.sort{|x,y| x.title[/_[a-zA-Z0-9]+_/] <=> y.title[/_[a-zA-Z0-9]+_/]}.each do |database| %>
+                    <li class="list-group-item">
+                      <div
+                      class="checkbox">
+                        <label>
+                          <input class="box" type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
+                          <%= database.title or database.name %>
+                        </label>
+                      </div>
+                    </li>
+                <% end %>
+
+                <h4><i>Blast against Transcriptomes</i></h4>
+
 				<% # databases[type].sort_by(&:title).each do |database| %>
-				<% databases[type].sort{|x,y| x.title[/_[a-zA-Z0-9]+_/] <=> y.title[/_[a-zA-Z0-9]+_/]}.each do |database| %>
+				<% databases[type].select{ |item| !item[:title].end_with?("g4a")  }.sort{|x,y| x.title[/_[a-zA-Z0-9]+_/] <=> y.title[/_[a-zA-Z0-9]+_/]}.each do |database| %>
                   <li class="list-group-item">
                     <div
                       class="checkbox">
