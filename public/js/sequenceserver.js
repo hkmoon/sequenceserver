@@ -718,20 +718,20 @@ $(document).ready(function(){
     });
 
     // HACK to allow users to select names from hit headers
-    $('.result').on('mousedown', ".hitn > .page-header > h4", function (event) {
-        var $this = $(this);
-        $this.on('mouseup mousemove', function handler(event) {
-            if (event.type === 'mouseup') {
-                // user wants to toggle
-                $this.attr('data-toggle', 'collapse');
-                $this.find('.fa-chevron-down').toggleClass('fa-rotate-270');
-            } else {
-                // user wants to select
-                $this.attr('data-toggle', '');
-            }
-            $this.off('mouseup mousemove', handler);
-        });
-    });
+    // $('.result').on('mousedown', ".hitn > .page-header > h4", function (event) {
+    //     var $this = $(this);
+    //     $this.on('mouseup mousemove', function handler(event) {
+    //         if (event.type === 'mouseup') {
+    //             // user wants to toggle
+    //             $this.attr('data-toggle', 'collapse');
+    //             $this.find('.fa-chevron-down').toggleClass('fa-rotate-270');
+    //         } else {
+    //             // user wants to select
+    //             $this.attr('data-toggle', '');
+    //         }
+    //         $this.off('mouseup mousemove', handler);
+    //     });
+    // });
 
     $('.result').on('click', '.view-sequence', function (event) {
         event.preventDefault();

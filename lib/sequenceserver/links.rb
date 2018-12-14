@@ -12,7 +12,8 @@ module SequenceServer
     UNIPROT_ID_PATTERN = /sp\|(\w+)\|/
     ENSEMBL_ID_PATTERN = /^ENS\S+/
     ENSEMBL_METAZOA_PATTERN = /gene:(AAEL|NEMV|WBGene|FBgn|DPOGS|ML|NV\S+)/
-    PLANMINE_ID_PATTERN = /^(dd_|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/
+    PLANMINE_ID_PATTERN = /^(SMEST|dd_Smed|dd_Smes_v|dd_Dlac|dd_Pten|dd_Ptor|dd_Spol|dd_Djap|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/
+    PLANMINE_GENE_ID_PATTERN = /^(SMESG)\S+/
 
     # Link generators return a Hash like below.
     #
@@ -124,7 +125,22 @@ module SequenceServer
       planmineId = Regexp.last_match[0]
       planmineId = encode planmineId
       # planmineId  = encode self.accession
-      url = "http://planmine-test.mpi-cbg.de/planmine-v3/portal.do?externalids=#{planmineId}&class=Contig"
+      url = "http://planmine.mpi-cbg.de/planmine/portal.do?externalids=#{planmineId}&class=Contig"
+      {
+          :order => 2,
+          :title => 'Planmine',
+          :url   => url,
+          :class => 'link',
+          :icon  => 'fa-external-link'
+      }
+    end
+
+    def planmineGene
+      return nil unless id.match(PLANMINE_GENE_ID_PATTERN)
+      planmineId = Regexp.last_match[0]
+      planmineId = encode planmineId
+      # planmineId  = encode self.accession
+      url = "http://planmine.mpi-cbg.de/planmine/portal.do?externalids=#{planmineId}&class=PredictedGene"
       {
           :order => 2,
           :title => 'Planmine',

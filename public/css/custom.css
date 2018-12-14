@@ -83,6 +83,7 @@ a.disabled:hover {
 }
 .page-header > *:first-child {
   width: 100%;
+  font-weight: bolder;
 }
 
 .page-content {
