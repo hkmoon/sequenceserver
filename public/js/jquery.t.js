@@ -303,7 +303,8 @@
 
             var q_i = $queryDiv.attr('id');
 
-            var width = $graphDiv.width();
+            var maxTextWidth = 100;
+            var width = $graphDiv.width() - maxTextWidth;
             var height = hits.length * (options.barHeight + options.barPadding) +
                 5 * options.margin + options.legend * 3;
 
@@ -314,13 +315,14 @@
                 .insert('svg', ':first-child')
                     .attr('width', width)
                     .attr('height', height)
+                    .attr('transform', 'translate(' + maxTextWidth / 2 + ', 0)')
                 .append('g')
                     .attr('transform', 'translate(' + options.margin / 4 + ', ' + options.margin / 4 + ')');
 
             var maxTextWidth = 150;
             var x = d3.scale
                 .linear()
-                .range([maxTextWidth, width - options.margin]);
+                .range([0, width - options.margin]);
 
             x.domain([1, queryLen]);
 
@@ -446,7 +448,7 @@
                                 .attr("y", y(p_id) + options.barHeight / 2 )
                                 .attr('font-size', '11px')
                                 .attr("dy", ".30em")
-
+                                .attr('transform', 'translate(-' + maxTextWidth + ' , 0)')
                                 .attr('text-anchor', p_hsp.hitDef )
                                 .text( p_hsp.hitDef )
                             .append("title")

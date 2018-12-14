@@ -69,6 +69,7 @@ module.exports = function (grunt) {
                             // Base.
                             'public/js/underscore.min.js',
                             'public/js/jquery.min.js',
+                            'public/js/jquery.cookie.js',
                             'public/js/jquery-ui.min.js',
                             'public/js/bootstrap.min.js',
                             'public/js/webshims/polyfiller.js',
@@ -80,7 +81,7 @@ module.exports = function (grunt) {
                             'public/js/sequence.js',
                             'public/js/sequenceserver.js',
                             'public/js/jquery.t.js',
-                            'public/js/sequenceserver.blast.js',
+                            'public/js/sequenceserver.blast.js'
                         ]
                 }
             }
@@ -97,6 +98,19 @@ module.exports = function (grunt) {
                 cwd:    'public/fonts/',
                 src:    '**',
                 dest:   '<%= prefix %>/fonts'
+            },
+            js: {
+                expand: true,
+                cwd:  'public/js/',
+                src:  ['underscore.min.js', 'jquery.min.js','d3.v3.min.js', 'treecompare.js', 'spin.min.js', 'circular-json.js', 'canvas-toBlob.js', 'FileSaver.min.js', 'd3CheckBox.js', 'jquery.cookie.js'],
+                // src: ['public/js/treecompare.js',
+                //       'public/js/spin.min.js',
+                //       'public/js/circular-json.js',
+                //       'public/js/canvas-toBlob.js',
+                //       'public/js/FileSaver.min.js',
+                //       'public/js/d3CheckBox.js',
+                //       'public/js/jquery.cookie.js'],
+                dest: '<%= prefix %>/js'
             }
         },
         compress: {

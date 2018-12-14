@@ -10,6 +10,9 @@ module SequenceServer
 
     NCBI_ID_PATTERN    = /gi\|(\d+)\|/
     UNIPROT_ID_PATTERN = /sp\|(\w+)\|/
+    ENSEMBL_ID_PATTERN = /^ENS\S+/
+    ENSEMBL_METAZOA_PATTERN = /gene:(AAEL|NEMV|WBGene|FBgn|DPOGS|ML|NV\S+)/
+    PLANMINE_ID_PATTERN = /^(dd_|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/
 
     # Link generators return a Hash like below.
     #
@@ -117,11 +120,42 @@ module SequenceServer
     end
 
     def planmine
-      planmineId  = encode self.accession
-      url = "http://planmine.mpi-cbg.de/planmine/portal.do?externalids=#{planmineId}"
+      return nil unless id.match(PLANMINE_ID_PATTERN)
+      planmineId = Regexp.last_match[0]
+      planmineId = encode planmineId
+      # planmineId  = encode self.accession
+      url = "http://planmine-test.mpi-cbg.de/planmine-v3/portal.do?externalids=#{planmineId}&class=Contig"
       {
           :order => 2,
           :title => 'Planmine',
+          :url   => url,
+          :class => 'link',
+          :icon  => 'fa-external-link'
+      }
+    end
+
+    def ensembl
+      return nil unless id.match(ENSEMBL_ID_PATTERN)
+      ensembl_id = Regexp.last_match[0]
+      ensembl_id = encode ensembl_id
+      url = "http://www.ensembl.org/id/#{ensembl_id}"
+      {
+          :order => 2,
+          :title => 'Ensembl',
+          :url   => url,
+          :class => 'link',
+          :icon  => 'fa-external-link'
+      }
+    end
+
+    def metazoa
+      return nil unless self.title.match(ENSEMBL_METAZOA_PATTERN)
+      metazoa_id = Regexp.last_match[1]
+      metazoa_id = encode metazoa_id
+      url = "http://metazoa.ensembl.org/Multi/Search/Results?species=all;idx=;q=#{metazoa_id}"
+      {
+          :order => 2,
+          :title => 'Metazoa',
           :url   => url,
           :class => 'link',
           :icon  => 'fa-external-link'

@@ -18,6 +18,17 @@
   <![endif]-->
 
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <script type="text/javascript" src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/jquery.cookie.js"></script>
+  <script type="text/javascript" src="js/d3.v3.min.js"></script>
+  <script type="text/javascript" src="js/treecompare.js"></script>
+  <script type="text/javascript" src="js/spin.min.js"></script>
+  <script type="text/javascript" src="js/circular-json.js"></script>
+  <script type="text/javascript" src="js/canvas-toBlob.js"></script>
+  <script type="text/javascript" src="js/FileSaver.min.js"></script>
+  <script type="text/javascript" src="js/d3CheckBox.js"></script>
+
   <link href='http://fonts.googleapis.com/css?family=Roboto:400' rel='stylesheet' type='text/css'>
   <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
   <% if settings.production? %>
@@ -27,6 +38,247 @@
     <link rel="stylesheet" media="screen,print" type="text/css" href="css/font-awesome.min.css"/>
     <link rel="stylesheet" media="screen,print" type="text/css" href="css/custom.css"/>
   <% end %>
+
+  <script src="//peterolson.github.com/BigInteger.js/BigInteger.min.js"></script>
+
+  <style>
+    .extraMargin + span:after {
+      content: "\000A";
+      white-space: pre;
+    }
+
+    .modal-container {
+      z-index: 3;
+      right: 50px;
+      top: 75px;
+      position: absolute;
+      padding: 5px 20px 15px 20px;
+      width: 180px;
+      height: 60px;
+      border-radius: 8px;
+      display: none;
+    }
+    svg {
+      width: 100%;
+    }
+    .vis-container {
+      height: 900px;
+      padding: 0;
+      width: 100%;
+      /*overflow: scroll !important;*/
+      top: 55px;
+    }
+
+    /*--end treename input----------------------------------------------*/
+
+
+    /*Styles for menu of node or link click*/
+
+    .tooltipElem{
+      position: relative;
+      display: inline-block;
+      /* border-bottom: 1px dotted black;*/
+      opacity: 0.9;
+    }
+
+    .tooltipElemText{
+      fill: white;
+      font-size: 1em;
+      /*font-weight: bold;*/
+      opacity: 1;
+    }
+
+    .tooltipElemInfoText{
+      fill: white;
+      font-size: 1.1em;
+      /*font-weight: bold;*/
+      opacity: 1;
+    }
+
+
+    /*--end tooltipElem----------------------------------------------*/
+
+    /*Styles for tree*/
+
+    path.link {
+      stroke: grey;
+      fill: none;
+      cursor: pointer;
+    }
+
+    path.link.select{
+      /*stroke: green !important;*/
+    }
+
+    path.link:hover{
+      stroke: black !important;
+    }
+
+    path.link.search{
+      stroke: orange !important;
+    }
+
+    path.link.search:hover{
+      stroke: green !important;
+    }
+
+    g.node{
+      fill: black;
+      cursor: pointer;
+    }
+
+    g.node.select{
+      /*fill: green !important;*/
+    }
+
+    circle.node {
+      fill: black;
+    }
+
+    circle.node.select{
+      /*fill: green !important;*/
+    }
+
+    circle.node.search {
+      fill: orange !important;
+    }
+
+    circle.node.search:hover {
+      fill: green !important;
+    }
+
+    text.node{
+      fill: black;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    text.node.select{
+      /*fill: green !important;*/
+      font-weight: bold;
+    }
+
+    text.node.search{
+      fill: orange !important;
+      font-weight: bold;
+    }
+
+    text.node.search:hover{
+      fill: green !important;
+      font-weight: bold;
+    }
+
+    text.triangleText {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      opacity: 1;
+      fill: black;
+    }
+
+    text.triangleText.select {
+      /*fill: green;*/
+      font-weight: bold;
+    }
+
+    path.triangle.select{
+      /*fill: green !important;*/
+    }
+
+    rect.node {
+      fill: magenta;
+      stroke-width: 2px;
+      stroke: black;
+    }
+
+    /*--end tree----------------------------------------------*/
+
+    /*this following code makes the treename hide on focus*/
+    .treename:focus::-webkit-input-placeholder  {color:transparent;} /* Chrome; Opera; Safari */
+    .treename:focus::-moz-placeholder   {color:transparent;} /*Firefox 19    */
+    .treename:-moz-placeholder   {color:transparent;} /* Firefox 18- */
+    .treename:-ms-input-placeholder    {color:transparent;} /* IE 10*/
+
+    div.searchBox {
+      display: none;
+    }
+
+    div.treeTools {
+      display: none;
+    }
+
+    div.treeToolsMenu {
+      display: none;
+    }
+
+    div.exportTools {
+      display: none;
+    }
+
+    div.exportMenu {
+      display: none;
+    }
+
+    div.undo {
+      display: none;
+    }
+
+    /*personalized render icon*/
+
+    @font-face {
+      font-family: 'icomoon';
+      src:  url('../fonts/icomoon.eot?v8nxfa');
+      src:  url('../fonts/icomoon.eot?v8nxfa#iefix') format('embedded-opentype'),
+      url('../fonts/icomoon.ttf?v8nxfa') format('truetype'),
+      url('../fonts/icomoon.woff?v8nxfa') format('woff'),
+      url('../fonts/icomoon.svg?v8nxfa#icomoon') format('svg');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    [class^="icon-"], [class*=" icon-"] {
+      /* use !important to prevent issues with browser extensions that change fonts */
+      font-family: 'icomoon' !important;
+      speak: none;
+      font-style: normal;
+      font-weight: normal;
+      font-variant: normal;
+      text-transform: none;
+      line-height: 1;
+
+      /* Better Font Rendering =========== */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .icon-phyloio-01:before {
+      content: "\e900";
+    }
+
+    a.button4{
+      display:inline-block;
+      padding:0.3em 1.2em;
+      margin:0 0.1em 0.1em 0;
+      border:0.16em solid rgba(255,255,255,0);
+      border-radius:1em;
+      box-sizing: border-box;
+      text-decoration:none;
+      font-family:'Roboto',sans-serif;
+      font-weight:300;
+      color:#000000;
+      text-shadow: 0 0.04em 0.04em rgba(0,0,0,0.35);
+      text-align:center;
+      transition: all 0.2s;
+    }
+
+    a.button4:hover{
+      border-color: #3a3a7a;
+    }
+
+    @media all and (max-width:30em){
+       a.button4{
+        display:block;
+        margin:0.2em auto;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -190,6 +442,224 @@
 
       </div>
 
+      <table>
+        <tr>
+          <td colspan="2"><h4>Available transcript BLAST databases in phylogenetic context</h4></td>
+        </tr>
+        <tr>
+          <td width="300">
+            <table style="font-family: sans-serif; font-size: 11px; border-collapse:collapse;" border="0px">
+              <thead>
+              <tr><td colspan="3" style="font-size: medium">Clades</td></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td rowspan="3" style="background: #EEEEEE;color: black;">Flatworms</td>
+                <td style="background: #FF0000;color: white;" width="50" align="center"></td>
+                <td>: Planarians</td>
+              </tr>
+              <tr>
+                <td style="background: #FF7F00;color: white;" width="50" align="center"></td>
+                <td>: Parasitic flatworms</td>
+              </tr>
+              <tr>
+                <td style="background: #C8C800;color: white;" width="50" align="center"></td>
+                <td>: Macrostomida</td>
+              </tr>
+              <tr>
+                <td colspan="3" style="background: #0F0F0F;" height="2"></td>
+              </tr>
+              <tr>
+                <td rowspan="4" style="background: #CCCCCC;color: black;">Outgroups</td>
+                <td style="background: #00FF00;color: white;" width="50" align="center"></td>
+                <td>: Lophotrocozoa</td>
+              </tr>
+              <tr>
+                <td style="background: #0000FF;color: white;" width="50" align="center"></td>
+                <td>: Nematoda</td>
+              </tr>
+              <tr>
+                <td style="background: #0080FF;color: white;" width="50" align="center"></td>
+                <td>: Insects</td>
+              </tr>
+              <tr>
+                <td style="background: #8B00FF;color: white;" width="50" align="center"></td>
+                <td>: Vertebrata</td>
+              </tr>
+              </tbody>
+            </table>
+          </td>
+
+          <td>
+          <table>
+            <thead><td colspan="4" style="font-size: medium">Blast database selection tree options</td></thead>
+            <tbody>
+            <tr><td>&nbsp;</td></tr>
+            <tr>
+              <td width="150">
+                <a href="#" class="button4" style="background-color:#53d891" onclick="preset('SmedGenome', newWickSmedGenome, 100);">S.mediterranea- <font style="font-size: smaller">genome annotations</font></a>
+              </td>
+              <td width="150">
+                <a href="#" class="button4" style="background-color:#ed1c1b" onclick="preset('Smed', newWickSmed, 200);">S.mediterranea- all resources</a>
+              </td>
+              <td width="150">
+                <a href="#" class="button4" style="background-color:#f1696f" onclick="preset('Planarians', newWickStringPlanarians, 560);">Planarians</a>
+              </td>
+              <td width="150">
+                <a href="#" class="button4" style="background-color:#f1bb4e" onclick="preset('Flatworms', newWickStringFlatworms, 560);">Flatworms</a>
+              </td>
+              <td width="150">
+                <a href="#" class="button4" style="background-color:#4e9af1" onclick="presetAll();">All</a>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+          </td>
+        </tr>
+      </table>
+
+      <div class="container-fluid vis-container" id="vis-container1"></div>
+
+      <script>
+
+        var db_param = null
+        var org_param = null
+
+        <% if not params[:db].nil? and not params[:db].empty? %>
+          db_param = '<%=params[:db]%>'
+        <% end %>
+
+        <% if not params[:org].nil? and not params[:org].empty? %>
+          org_param = '<%=params[:org]%>'
+        <% end %>
+
+        var treecomp
+
+        var newWickStringAll = "((((((((((((((S_mediterranea_asexual \"dd_Smed_v6\":0.000682,(S_mediterranea_sexual_aug \"dd_Smes_v2\":0.0010221599999999942,S_mediterranea_sexual_tr \"dd_Smes_v1\":0.0):0.000854):0.014532219999999985,S_polychroa \"dd_Spol_v4\":0.01462447999999994):0.039704300000000026,D_japonica \"dd_Djap_v4\":0.047170880000000026)Dugesiidae:0.09164859999999997,(D_lacteum \"dd_Dlac_v9\":0.08579946999999999,(P_torva \"dd_Ptor_v3\":0.08338314999999996,(P_nigra \"dd_Pnig_v3\":0.009562839999999961,P_tenuis \"dd_Pten_v3\":0.005176449999999999)Polycelis:0.07975580999999998)Planariidae:0.01864987000000007)Planarioidea:0.06602125999999997)Tricladida/\"Planaria\":0.15620923999999992[&&NHX:C=255.0.0],(K_amphipodicola \"bg_Kamp_v1\":0.34165903,Protomonotresidae_sp \"bg_Prot_v1\":0.24812555999999997):0.04416122999999994):0.07539240000000003,(B_semperi \"bg_Bsem_v1\":0.1951128900000001,(S_mansoni \"ex_Sman_v1\":0.2373187200000001,(H_microstoma \"ex_Hmic_v1\":0.11356270999999996,(T_solium \"ex_Tsol_v1\":0.029360889999999973,(E_granulosus \"ex_Egra_v1\":0.009178059999999988,E_multilocularis \"ex_Emul_v1\":0.006744149999999949):0.022764569999999984):0.06294084):0.21121019000000008):0.09091369999999999[&&NHX:C=255.127.0]):0.02467418999999993):0.02850878000000001,R_rostratum \"bg_Rros_v1\":0.32630994999999996):0.03239376000000005,Gnosonesimida_spIV \"bg_Gnos_v1\":0.37750828000000003):0.02250443999999996,((G_applanata \"bg_Gapp_v1\":0.12817153999999997,(P_alpinus \"bg_Palp_v1\":0.12615443999999998,Prorhynchus_spI \"bg_Pspi_v1\":0.12582289000000002):0.04982964999999995):0.15595566000000005,(P_vittatus \"bg_Pvit_v1\":0.11136907000000007,S_ellipticus \"bg_Sell_v1\":0.10621845000000008):0.13122868):0.03031695000000001):0.024295399999999967,(M_lineare \"bg_Mlin_v1\":0.27390068999999995,M_ligano \"gr_Mlig_v2\":0.28581785999999987)Macrostomida:0.057024930000000085[&&NHX:C=200.200.0])Platyhelminthes:0.1179631000000001,((Owl_limpet_L_gigantea \"ex_Lgig_v1\":0.18065443000000003,Oyster_C_gigas \"ex_Cgig_v1\":0.15085910000000002):0.04788008999999993,Leech_H_robusta \"ex_Hrob_v1\":0.27646553999999995)Lophotrocozoa:0.0237444[&&NHX:C=0.255.0]):0.030580379999999963,((C_elegans \"Cele_cDNA_Ensembl_Metazoa_r40\":0.03312954999999995,C_briggsae \"Cbri_cDNA_Ensembl_Metazoa_r40\":0.024572110000000036)Nematoda:0.51958777[&&NHX:C=0.0.255],(Wasp_N_vitripennis \"Nvit_cDNA_Ensembl_Metazoa_r40\":0.21205212000000007,(Monarch_Butterfly_D_plexippus \"Dple_cDNA_Ensembl_Metazoa_r40\":0.21588105999999996,(Fruit_Fly_D_melanogaster \"Dmel_cDNA_Ensembl_Metazoa_r40\":0.15327117,Mosquito_A_aegypti \"Aaeg_cDNA_Ensembl_Metazoa_r40\":0.11094841):0.05683128999999998):0.035789290000000085)Arthropoda:0.09974830000000001[&&NHX:C=0.128.255]):0.03562592999999992):0.034206179999999975,(Frog_X_tropicalis \"Xtro_cDNA_Ensembl_r93\":0.08004615999999998,(Mouse_M_musculus \"Mmus_cDNA_Ensembl_r93\":0.016757279999999986,Human_H_sapiens \"Hsap_cDNA_Ensembl_r93\":0.017613650000000036):0.057610129999999926)Vertebrata:0.15619625999999998[&&NHX:C=139.0.255])Bilateria:0.029211054999999986,(Comb_jelly_M_leidyi \"Mlei_cDNA_Ensembl_Metazoa_r40\":0.46396249,Sea_anemone_N_vectensis \"Nvec_cDNA_Ensembl_Metazoa_r40\":0.20057707999999996):0.029211054999999986);";
+
+        var newWickStringPlanarians = "(((((S_mediterranea_asexual \"dd_Smed_v6\":0.000682,(S_mediterranea_sexual_aug \"dd_Smes_v2\":0.0010221599999999942,S_mediterranea_sexual_tr \"dd_Smes_v1\":0.0):0.000854):0.014532219999999985,S_polychroa \"dd_Spol_v4\":0.01462447999999994):0.039704300000000026,D_japonica \"dd_Djap_v4\":0.047170880000000026)Dugesiidae:0.09164859999999997,(D_lacteum \"dd_Dlac_v9\":0.08579946999999999,(P_torva \"dd_Ptor_v3\":0.08338314999999996,(P_nigra \"dd_Pnig_v3\":0.009562839999999961,P_tenuis \"dd_Pten_v3\":0.005176449999999999)Polycelis:0.07975580999999998)Planariidae:0.01864987000000007)Planarioidea:0.06602125999999997)Tricladida/\"Planaria\":0.15620923999999992[&&NHX:C=255.0.0],(K_amphipodicola \"bg_Kamp_v1\":0.34165903,Protomonotresidae_sp \"bg_Prot_v1\":0.24812555999999997):0.04416122999999994):0.07539240000000003;";
+
+        var newWickStringFlatworms = "(((((((((((S_mediterranea_asexual \"dd_Smed_v6\":0.000682,(S_mediterranea_sexual_aug \"SMEST.1\":0.0010221599999999942,S_mediterranea_sexual_tr \"dd_Smes_v1\":0.0):0.000854):0.014532219999999985,S_polychroa \"dd_Spol_v4\":0.01462447999999994):0.039704300000000026,D_japonica \"dd_Djap_v4\":0.047170880000000026)Dugesiidae:0.09164859999999997,(D_lacteum \"dd_Dlac_v9\":0.08579946999999999,(P_torva \"dd_Ptor_v3\":0.08338314999999996,(P_nigra \"dd_Pnig_v3\":0.009562839999999961,P_tenuis \"dd_Pten_v3\":0.005176449999999999)Polycelis:0.07975580999999998)Planariidae:0.01864987000000007)Planarioidea:0.06602125999999997)Tricladida/\"Planaria\":0.15620923999999992[&&NHX:C=255.0.0],(K_amphipodicola \"bg_Kamp_v1\":0.34165903,Protomonotresidae_sp \"bg_Prot_v1\":0.24812555999999997):0.04416122999999994):0.07539240000000003,(B_semperi \"bg_Bsem_v1\":0.1951128900000001,(S_mansoni \"ex_Sman_v1\":0.2373187200000001,(H_microstoma \"ex_Hmic_v1\":0.11356270999999996,(T_solium \"ex_Tsol_v1\":0.029360889999999973,(E_granulosus \"ex_Egra_v1\":0.009178059999999988,E_multilocularis \"ex_Emul_v1\":0.006744149999999949):0.022764569999999984):0.06294084):0.21121019000000008):0.09091369999999999[&&NHX:C=255.127.0]):0.02467418999999993):0.02850878000000001,R_rostratum \"bg_Rros_v1\":0.32630994999999996):0.03239376000000005,Gnosonesimida_spIV \"bg_Gnos_v1\":0.37750828000000003):0.02250443999999996,((G_applanata \"bg_Gapp_v1\":0.12817153999999997,(P_alpinus \"bg_Palp_v1\":0.12615443999999998,Prorhynchus_spI \"bg_Pspi_v1\":0.12582289000000002):0.04982964999999995):0.15595566000000005,(P_vittatus \"bg_Pvit_v1\":0.11136907000000007,S_ellipticus \"bg_Sell_v1\":0.10621845000000008):0.13122868):0.03031695000000001):0.024295399999999967,(M_lineare \"bg_Mlin_v1\":0.27390068999999995,M_ligano \"gr_Mlig_v2\":0.28581785999999987)Macrostomida:0.057024930000000085[&&NHX:C=200.200.0])Platyhelminthes:0.1179631000000001,((Owl_limpet_L_gigantea \"ex_Lgig_v1\":0.18065443000000003,Oyster_C_gigas \"ex_Cgig_v1\":0.15085910000000002):0.04788008999999993,Leech_H_robusta \"ex_Hrob_v1\":0.27646553999999995)Lophotrocozoa:0.0237444[&&NHX:C=0.255.0]):0.030580379999999963;";
+
+        var newWickSmed = "(\"dd_Smed_v6\":0.0001, \"be_Smed_v2\":0.0001, \"to_Smed_v2\":0.0001, \"mu_Smed_v1\":0.0001, \"ox_Smed_v2\":0.0001, \"bo_Smed_v1\":0.0001, \"ka_Smed_v1\":0.0001, \"uc_Smed_v2\":0.0001, \"dd_Smes_v1\":0.0001, \"SMEST.1\":0.0001) S_mediterranea:0.0[&&NHX:C=255.0.0];";
+
+        var newWickSmedGenome = "(\"SMEST.1\":0.0001) S_mediterranea:0.0[&&NHX:C=255.0.0];";
+
+        // var newWickSmed = "(\"dd_Smed_v6\":0.0001, \"be_Smed_v2\":0.0001, \"to_Smed_v2\":0.0001, \"mu_Smed_v1\":0.0001, \"PublishedTranscript_Smed_v1\":0.0001, \"ox_Smed_v2\":0.0001, \"bo_Smed_v1\":0.0001, \"ka_Smed_v1\":0.0001, \"uc_Smed_v2\":0.0001, \"dd_Smes_v1\":0.0001, \"dd_Smes_v2\":0.0001) S_mediterranea:0.0[&&NHX:C=255.0.0];"
+
+        var tree1
+
+        function presetAll() {
+          tree1 = treecomp.addTree(newWickStringAll, undefined, "single");
+          treecomp.viewTree(tree1.name, "vis-container1", "vis-scale1");
+          tree1.data.treeWidth = 500
+          treecomp.update(tree1.root, tree1.data, 100);
+          $.cookie("planmine-preset", "presetAll");
+        }
+
+        function preset(key, newWickString, width) {
+          tree1 = treecomp.addTree(newWickString, undefined, "single");
+          treecomp.viewTree(tree1.name, "vis-container1", "vis-scale1");
+          tree1.data.treeWidth = width
+
+          var d = tree1.root.children[1]
+          if(d) {
+              d.collapsed = true;
+              d._children = d.children;
+              d.children = null;
+          }
+
+          treecomp.update(tree1.root, tree1.data, 100);
+          $.cookie("planmine-preset", key);
+        }
+
+        treecomp = TreeCompare().init({
+          //whether the tree visualisation takes into account tree branch lengths
+          useLengths: true,
+          //size of font on node labels
+          fontSize: 14,
+          //thickness of branch lines
+          lineThickness: 3,
+          //size of tree nodes
+          nodeSize: 3,
+          //multiplier for treeWidth (not width in px)
+          treeWidth: 500,
+          //multiplier for height of a leaf (not height of whole tree)
+          treeHeight: 100,
+          //whether compared tree moves to best corresponding node when node in other tree highlighted
+          moveOnClick: true,
+          //whether zoom slider overlay is enabled
+          enableZoomSliders: true,
+          //minimum zoom level
+          scaleMin: 1,
+          //maximum zoom level
+          scaleMax: 1,
+          //color of the text for the length scale
+          scaleColor: "black",
+          //function to call when a long operation is occuring
+          loadingCallback: function () {
+          },
+          //function to call when a long operation is complete
+          loadedCallback: function () {
+          },
+          //text for internal nodes
+          internalLabels: "color", //none, name, length, similarity
+          //whether the link to download the tree as an SVG is shown
+          enableDownloadButtons: false,
+          //whether zoom on mouseover is enabled
+          enableFisheyeZoom: true,
+          //zoom mode for scaling the visualisation
+          zoomMode: "traditional", //semantic, traditional
+          //whether the tree is scaled to fit in the render space on initial render
+          fitTree: "scale", //none, scale
+          //whether size control overlay is enabled
+          enableSizeControls: true,
+          //whether search overlay is enabled
+          enableSearch: false,
+          //depth to which nodes are automatically collapsed e.g 3 collapses all nodes deeper than depth 3
+          autoCollapse: null, // 0,1,2,3... etc
+          //enable reroot functionality to find best root based on opposite tree in compare mode
+          enableRerootFixedButtons: true,
+          //swaps bipartitions until best resembles to opposite tree is found
+          enableSwapFixedButtons: true,
+          //enables to share tree as gist
+          enableCloudShare: false,
+          //enables buttons to ladderize trees
+          enableLadderizeTreeButton: true,
+          //enables all opposite tree actiosn
+          enableOppositeTreeActions: true,
+          //allows to align tiplabels
+          alignTipLables: false,
+          //allows to search for multiple leaves
+          selectMultipleSearch: false,
+          //checkbox
+          checkbox: true
+        });
+
+        console.log($.cookie("planmine-preset"))
+
+        switch ($.cookie("planmine-preset")) {
+          case "presetAll":
+            presetAll();
+            break;
+          case "SmedGenome":
+            preset("SmedGenome", newWickSmedGenome, 10);
+            break;
+          case "Smed":
+            preset("Smed", newWickSmed, 200);
+            break;
+          case "Planarians":
+            preset("Planarians", newWickStringPlanarians, 560);
+            break;
+          case "Flatworms":
+            preset("Flatworms", newWickStringFlatworms, 560);
+            break;
+          default:
+            presetAll();
+        }
+
+      </script>
+
       <div
         class="form-group databases-container">
         <%# sort => same ordering of nucleotide and protein datbases %>
@@ -206,56 +676,92 @@
                 class="list-group databases <%= type %>">
 
 				  <!-- Select all -->
-				  <li class="list-group-item">
-					  <div class="checkbox">
-						  <label>
-							  <input type="checkbox" name="select-all" id="select-all" data-type="nucleotide"/> <b>Select all</b>
-						  </label>
-					  </div>
-				  </li>
-				  <script>
-					  $('#select-all').click(function(event) {
-						  if(this.checked) {
-							  // Iterate each checkbox
-							  $(".databases input:checkbox").check();
-						  } else {
-							  $(".databases input:checkbox").uncheck();
-						  }
+<!--				  <li class="list-group-item">-->
+<!--					  <div class="checkbox">-->
+<!--						  <label>-->
+<!--							  <input type="checkbox" name="select-all" id="select-all" data-type="nucleotide"/> <b>Select all</b>-->
+<!--						  </label>-->
+<!--					  </div>-->
+<!--				  </li>-->
+<!--				  <script>-->
+<!--					  $('#select-all').click(function(event) {-->
+<!--						  if(this.checked) {-->
+<!--							  // Iterate each checkbox-->
+<!--							  $(".databases input:checkbox").check();-->
+<!--						  } else {-->
+<!--							  $(".databases input:checkbox").uncheck();-->
+<!--						  }-->
 
-					  });
-				  </script>
+<!--					  });-->
+<!--				  </script>-->
 				  <!-- Select all end -->
 
-				<% # databases[type].sort_by(&:title).each do |database| %>
-				<% databases[type].sort{|x,y| x.title[/_[a-zA-Z]+_/] <=> y.title[/_[a-zA-Z]+_/]}.each do |database| %>
-                  <li class="list-group-item">
-                    <div
+                <h4><i>Blast against Genome</i></h4>
+
+                <% databases[type].select{ |item| item[:title].end_with?("g4a")  }.each do |database| %>
+                    <li class="list-group-item">
+                      <div
                       class="checkbox">
-                      <label>
-                        <input type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
-                        <%= database.title or database.name %>
-                      </label>
-                    </div>
-                  </li>
+                        <label>
+                          <input class="box" type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
+                          <%= database.title or database.name %>
+                        </label>
+                      </div>
+                    </li>
                 <% end %>
 
-				  <script>
-					  $('#<%= params[:db] %>').prop('checked', true);
+                <br/>
+                <a id="trdb-toggle" title="Show hidden transcriptome databases"><i class="fa fa-plus-square"></i></a>
+                <script>
+                  $('#trdb-toggle').click(function() {
 
-					  <% if not params[:org].nil? and not params[:org].empty? %>
-					  $(':checkbox').each(function() {
-						  if(this.id.indexOf('<%=params[:org]%>') > -1)
-							  this.checked = true;
-					  });
-					  <% end %>
+                    $('#trdb-toggle i').toggleClass("fa-plus-square")
+                    $('#trdb-toggle i').toggleClass("fa-minus-square")
 
-					  <% if not params[:seq].nil? and not params[:seq].empty? %>
-					  $(document).ready(function() {
-						  $('#sequence').val('<%=params[:seq].gsub(/\r/, '').gsub(/\n/, '\\\r\n') %>');
-					  });
-					  <% end %>
-				  </script>
+                    if( $('#trdb-toggle i').hasClass("fa-minus-square") ) {
+                      // show
+                      $("#transcriptome-databases").show(200);
+                    } else {
+                      // hide
+                      $("#transcriptome-databases").hide(200);
+                    }
+                  });
+                </script>
 
+                <div id="transcriptome-databases" style="display: none">
+
+                <h4><i>Blast against Transcriptomes</i></h4>
+
+                  <% # databases[type].sort_by(&:title).each do |database| %>
+                  <% databases[type].select{ |item| !item[:title].end_with?("g4a")  }.each do |database| %>
+                            <li class="list-group-item">
+                              <div
+                                class="checkbox">
+                                <label>
+                                  <input class="box" type="checkbox" name="databases[]" value="<%=database.id%>" data-type="<%=database.type%>" id="<%=database.title%>"/>
+                                  <%= database.title or database.name %>
+                                </label>
+                              </div>
+                            </li>
+                  <% end %>
+
+                  <script>
+                    $('#<%= params[:db] %>').prop('checked', true);
+
+                    <% if not params[:org].nil? and not params[:org].empty? %>
+                    $(':checkbox').each(function() {
+                      if(this.id.indexOf('<%=params[:org]%>') > -1)
+                        this.checked = true;
+                    });
+                    <% end %>
+
+                    <% if not params[:seq].nil? and not params[:seq].empty? %>
+                    $(document).ready(function() {
+                      $('#sequence').val('<%=params[:seq].gsub(/\r/, '').gsub(/\n/, '\\\r\n') %>');
+                    });
+                    <% end %>
+                  </script>
+                </div>
 
               </ul>
             </div>
@@ -347,10 +853,10 @@
 
       <br>
       Please Cite:
-      <a href='http://www.sequenceserver.com'>
-        Priyam, Woodcroft, Rai & Wurm, <strong>SequenceServer</strong> (<em>in prep</em>)
+      <a
+        href="http://www.biorxiv.org/content/early/2015/11/27/033142">
+        Priyam A, Woodcroft BJ, Rai V, Munagala A, Moghul I, Ter F, Gibbins MA, Moon H, Leonard G, Rumpf W &amp; Wurm Y. 2015. Sequenceserver: a modern graphical user interface for custom BLAST databases. biorxiv doi: 10.1101/033142.
       </a>
-      &amp; relevant data sources.
     </p>
   </div>
 
@@ -484,16 +990,32 @@
     <script src="js/sequenceserver.min.js"></script>
   <% else %>
     <script type="text/javascript" src="js/underscore.min.js"></script>
-    <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/jquery-ui.min.js"></script>
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
     <script type="text/javascript" src="js/webshims/polyfiller.js"></script>
-    <script type="text/javascript" src="js/d3.v3.min.js"></script>
     <script type="text/javascript" src="js/sequenceserver.js"></script>
     <script type="text/javascript" src="js/sequenceserver.blast.js"></script>
     <script type="text/javascript" src="js/jquery.t.js"></script>
     <script type="text/javascript" src="js/sequence.js"></script>
   <% end %>
+
+  <script>
+      $(document).ready( function(){
+          $("input.box").each(function() {
+            // console.log($(this).attr('id'))
+              var mycookie = $.cookie($(this).attr('id'));
+              if (mycookie && mycookie === "true") {
+                  $(this).prop('checked', mycookie);
+              }
+          });
+          $("input.box").change(function() {
+              $.cookie($(this).attr("id"), $(this).prop('checked'), {
+                  path: '/',
+                  expires: 365
+              });
+          });
+      });
+  </script>
 
   <!-- twitter -->
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
