@@ -67,7 +67,7 @@
                     data-toggle="collapse" data-target="#<%= "Query_#{query.number}_hit_#{hit.number}_alignment" %>">
 <!--                    <i class="fa fa-chevron-right"> </i>-->
                     <span>
-                      <% if hit.id.match(/^(SMEST|dd_Smed|dd_Smes_v|dd_Dlac|dd_Pten|dd_Ptor|dd_Spol|dd_Djap|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/) %>
+                      <% if hit.id.match(/^(SMEST|dd_Smed|dd_Smes|dd_Dlac|dd_Pnig|dd_Pten|dd_Ptor|dd_Spol|dd_Djap|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/) %>
                       <a href="http://planmine.mpi-cbg.de/planmine/portal.do?externalids=<%= hit.id %>&class=Contig" target="_blank">
                         <%= hit.id %>
                       </a>

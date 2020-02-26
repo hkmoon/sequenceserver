@@ -12,7 +12,7 @@ module SequenceServer
     UNIPROT_ID_PATTERN = /sp\|(\w+)\|/
     ENSEMBL_ID_PATTERN = /^ENS\S+/
     ENSEMBL_METAZOA_PATTERN = /gene:(AAEL|NEMV|WBGene|FBgn|DPOGS|ML|NV\S+)/
-    PLANMINE_ID_PATTERN = /^(SMEST|dd_Smed|dd_Smes_v|dd_Dlac|dd_Pten|dd_Ptor|dd_Spol|dd_Djap|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/
+    PLANMINE_ID_PATTERN = /^(SMEST|dd_Smed|dd_Smes|dd_Dlac|dd_Pnig|dd_Pten|dd_Ptor|dd_Spol|dd_Djap|bg_|ex_|gr_|to_|ka_|bo_|mu_|ox_|PublishedTranscript_|be_|uc_)\S+/
     PLANMINE_GENE_ID_PATTERN = /^(SMESG)\S+/
 
     # Link generators return a Hash like below.
